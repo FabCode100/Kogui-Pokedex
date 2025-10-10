@@ -1,0 +1,18 @@
+<mat-card>
+  <h2>Login</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="fill" class="full">
+      <mat-label>Usuário</mat-label>
+      <input matInput formControlName="login" />
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full">
+      <mat-label>Senha</mat-label>
+      <input matInput type="password" formControlName="password" />
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit">Entrar</button>
+    <p *ngIf="error" class="error">{{ error }}</p>
+    <p>Não tem conta? <a routerLink="/register">Registre-se</a></p>
+  </form>
+</mat-card>

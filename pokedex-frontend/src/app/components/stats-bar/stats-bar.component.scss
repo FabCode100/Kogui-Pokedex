@@ -1,0 +1,11 @@
+/* stats-bar.component.scss */
+.stats-bar {
+    display: flex;
+    gap: 16px;
+    padding: 12px;
+    background-color: #6b5bff;
+    color: #fff;
+    border-radius: 8px;
+    justify-content: center;
+    font-weight: bold;
+}

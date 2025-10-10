@@ -1,0 +1,38 @@
+<div class="card">
+    <div class="pokemon-id">#{{ pokemon.numero | number:'3.0' }}</div>
+
+    <div class="tags">
+        <span *ngFor="let t of pokemon.tipos" class="tag" [style.background]="t.cor">
+            {{ t.nome }}
+        </span>
+    </div>
+
+    <div class="image-background">
+        <div class="bg-gray"></div>
+        <div class="bg-black"></div>
+        <img [src]="pokemon.imagem" alt="{{ pokemon.nome }}" class="pokemon-img">
+    </div>
+
+    <h3 class="pokemon-name">{{ pokemon.nome | titlecase }}</h3>
+    <p class="pokemon-geracao">Geração: {{ pokemon.geracao }}</p>
+    <div class="stats">
+        <div *ngFor="let s of pokemon.stats" class="stat">
+            <div class="stat-header">
+                <span class="stat-label">{{ s.label | titlecase }}</span>
+                <span class="stat-value">{{ s.valor }}</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" [style.width.%]="s.valor"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button (click)="addFavorito.emit(pokemon)" [class.active]="pokemon.favorito">
+            {{ pokemon.favorito ? '★ Favorito' : '☆ Favorito' }}
+        </button>
+        <button (click)="addEquipe.emit(pokemon)" [class.active]="pokemon.equipe">
+            {{ pokemon.equipe ? 'Equipe' : 'Adicionar à Equipe' }}
+        </button>
+    </div>
+</div>

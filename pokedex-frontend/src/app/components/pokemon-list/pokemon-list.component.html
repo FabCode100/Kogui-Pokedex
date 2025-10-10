@@ -1,0 +1,9 @@
+<div class="pokemons-grid" *ngIf="pokemons.length > 0; else vazio">
+    <app-pokemon-card *ngFor="let p of pokemons" [pokemon]="p" (addFavorito)="addFavorito(p)"
+        (addEquipe)="addEquipe(p)">
+    </app-pokemon-card>
+</div>
+
+<ng-template #vazio>
+    <p class="loading">Nenhum Pokémon encontrado.</p>
+</ng-template>

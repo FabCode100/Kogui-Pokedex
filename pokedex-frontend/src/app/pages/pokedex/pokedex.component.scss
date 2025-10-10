@@ -1,0 +1,50 @@
+.pokemons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 16px;
+    justify-items: center;
+    /* centraliza os cards no grid */
+}
+
+.loading {
+    text-align: center;
+    font-size: 1.125rem;
+    /* leve ajuste de tamanho */
+    color: #6b7280;
+    margin: 40px 0 0 0;
+}
+
+.stats-summary {
+    background: linear-gradient(135deg, #1976d2, #42a5f5);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;  
+    padding: 24px 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    margin: 10px auto;
+    width: 100%;
+}
+
+.stat-item {
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+    transform: scale(1.05);
+}
+
+.stat-item h3 {
+    font-size: 2rem;
+    margin: 10px;
+    font-weight: bold;
+}
+
+.stat-item p {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin: 0;
+}

@@ -1,0 +1,19 @@
+<!-- Filtros por tipo -->
+<div class="filter-bar">
+    <button *ngFor="let t of tipos" [style.background]="t.cor" (click)="selecionarTipo(t.nome)">
+        {{ t.nome }}
+    </button>
+</div>
+
+<!-- Filtros por geração -->
+<div class="filter-bar generations">
+    <button *ngFor="let g of [1,2,3,4,5,6,7,8,9]" [ngClass]="'geracao-' + g" (click)="selecionarGeracao(g)">
+        Geração {{ g }}
+    </button>
+</div>
+
+
+<!-- Busca por nome -->
+<div class="search-bar">
+    <input type="text" placeholder="Buscar por nome..." (input)="buscarNome($event)">
+</div>
