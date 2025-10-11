@@ -2,11 +2,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, permissions, status
+from rest_framework import serializers
 import requests
-from .models import PokemonUsuario, Usuario
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from .models import PokemonUsuario
 from django.contrib.auth import get_user_model
-from .serializers import RegisterSerializer, UserSerializer
-
+from .serializers import RegisterSerializer, UserSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 
 # ---------------------- LISTAGEM DE POKÉMONS ----------------------
 class PokemonListView(APIView):
@@ -24,7 +28,7 @@ class FavoritosView(APIView):
 
     def get(self, request):
         usuario = request.user
-        favoritos = PokemonUsuario.objects.filter(usuario__id_usuario=usuario.id_usuario, favorito=True)
+        favoritos = PokemonUsuario.objects.filter(usuario=usuario, favorito=True)
         data = [{"nome": p.nome, "imagem": p.imagem_url} for p in favoritos]
         return Response(data)
 
@@ -61,7 +65,8 @@ class EquipeBatalhaView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        equipe = PokemonUsuario.objects.filter(usuario=request.user, grupo_batalha=True)
+        usuario = request.user
+        equipe = PokemonUsuario.objects.filter(usuario=usuario, grupo_batalha=True)
         data = [{"nome": p.nome, "imagem": p.imagem_url} for p in equipe]
         return Response(data)
 
@@ -95,7 +100,6 @@ class EquipeBatalhaView(APIView):
 # ---------------------- USUÁRIOS ----------------------
 User = get_user_model()
 
-
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -108,3 +112,59 @@ class ProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+# ---------------------- RESET DE SENHA ----------------------
+class PasswordResetRequestView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"detail": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        # Link que o frontend usaria para reset
+        reset_link = f"http://localhost:4200/reset-password-confirm/{uid}/{token}/"
+
+        send_mail(
+            "Reset de senha",
+            f"Clique aqui para resetar sua senha: {reset_link}",
+            "webmaster@localhost",
+            [user.email],
+            fail_silently=False
+        )
+
+        return Response({"detail": "Email de reset enviado!"}, status=status.HTTP_200_OK)
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uid = serializer.validated_data['uidb64']
+        token = serializer.validated_data['token']
+        new_password = serializer.validated_data['new_password']
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"detail": "Token inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"detail": "Token inválido ou expirado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"detail": "Senha alterada com sucesso!"}, status=status.HTTP_200_OK)

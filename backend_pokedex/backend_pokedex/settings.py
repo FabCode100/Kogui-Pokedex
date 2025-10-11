@@ -165,3 +165,7 @@ CORS_EXPOSE_HEADERS = ['Authorization']
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
 ]
+
+# Enviar emails para o console (não precisa de servidor real)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'webmaster@localhost'
