@@ -50,4 +50,7 @@ export class RegisterComponent {
       error: () => this.error = 'Erro ao registrar. Tente outro nome de usuário ou e-mail.'
     });
   }
+  goToLogin() {
+    this.router.navigate(['/login']);
+  }
 }

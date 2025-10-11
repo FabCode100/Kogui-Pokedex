@@ -1,0 +1,91 @@
+:host {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #f5f5dc, #ffeaa7); // tons leves Pokémon
+    font-family: 'Poppins', sans-serif;
+}
+
+mat-card {
+    width: 400px;
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    background-color: #fff8e7;
+    text-align: center;
+    border: 2px solid #f8c300; // cor Pokémon
+
+    h2 {
+        margin-bottom: 2rem;
+        color: #f08030; // cor laranja estilo Fire type
+        font-size: 1.8rem;
+        font-weight: 700;
+        text-shadow: 1px 1px 2px #ffd700;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+
+        .full {
+            width: 100%;
+        }
+
+        mat-form-field {
+            background-color: #fff3d6;
+            border-radius: 8px;
+        }
+
+        button {
+            &.primary {
+                background-color: #f08030; // laranja Fire type
+                color: white;
+                font-weight: 600;
+                padding: 0.75rem;
+                transition: 0.3s;
+
+                &:hover {
+                    background-color: #ff9b42; // laranja mais claro no hover
+                }
+            }
+
+            &.secondary {
+                background-color: #ffd966; // amarelo para botão secundário
+                color: #333;
+                font-weight: 600;
+                padding: 0.5rem;
+                transition: 0.3s;
+
+                &:hover {
+                    background-color: #ffe799; // amarelo mais claro no hover
+                }
+            }
+        }
+
+
+        .error {
+            color: #e53935;
+            font-weight: 500;
+            margin-top: -0.5rem;
+            font-size: 0.9rem;
+        }
+
+        p {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #555;
+
+            a {
+                color: #1976d2;
+                font-weight: 500;
+                text-decoration: none;
+
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+}

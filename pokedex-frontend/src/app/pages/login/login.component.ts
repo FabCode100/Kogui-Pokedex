@@ -41,4 +41,11 @@ export class LoginComponent {
       error: () => this.error = 'Usuário ou senha inválidos.'
     });
   }
+  resetPassword() {
+    this.router.navigate(['/reset-password']);
+  }
+
+  goToRegister() {
+    this.router.navigate(['/register']);
+  }
 }

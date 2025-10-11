@@ -21,7 +21,11 @@
             <input matInput type="password" formControlName="password" />
         </mat-form-field>
 
-        <button mat-raised-button color="primary" type="submit">Registrar</button>
-        <p *ngIf="error">{{ error }}</p>
+        <button mat-raised-button class="primary" type="submit">Registrar</button>
+        <button mat-button class="secondary" type="button" (click)="goToLogin()">
+            Já tem conta? Login
+        </button>
+
+        <p *ngIf="error" class="error">{{ error }}</p>
     </form>
 </mat-card>
