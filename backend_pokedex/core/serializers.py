@@ -1,6 +1,39 @@
 from rest_framework import serializers
-from .models import Usuario
+from .models import Usuario, PokemonUsuario, TipoPokemon
 
+import requests
+
+class TipoPokemonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoPokemon
+        fields = ['descricao']
+
+
+class PokemonUsuarioSerializer(serializers.ModelSerializer):
+    tipos = TipoPokemonSerializer(many=True, read_only=True)
+    stats = serializers.SerializerMethodField()  # <-- novo campo
+
+    class Meta:
+        model = PokemonUsuario
+        fields = [
+            'codigo', 'nome', 'imagem_url', 
+            'tipos', 'favorito', 'grupo_batalha', 'geracao', 'stats'
+        ]
+
+    def get_stats(self, obj):
+        """Busca os stats básicos da PokeAPI."""
+        try:
+            url = f"https://pokeapi.co/api/v2/pokemon/{obj.codigo}"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                stats = {s['stat']['name']: s['base_stat'] for s in data['stats']}
+                return stats
+        except Exception:
+            return {}
+        return {}
+
+        
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 

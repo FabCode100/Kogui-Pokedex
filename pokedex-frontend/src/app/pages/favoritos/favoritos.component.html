@@ -1,4 +1,3 @@
-<div class="favorites-grid">
-    <app-pokemon-card *ngFor="let p of favoritos" [pokemon]="p" (addFavorito)="removerFavorito(p.nome)">
-    </app-pokemon-card>
-</div>
+<app-pokemon-card *ngFor="let p of favoritos" [pokemon]="p"
+    (addFavorito)="removerFavorito($event.nome)">
+</app-pokemon-card>

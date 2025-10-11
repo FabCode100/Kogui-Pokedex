@@ -2,44 +2,29 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { Pokemon } from '../../Models/pokemon.model';
 
-// Componentes filhos
 import { HeaderComponent } from '../../components/header/header.component';
-import { StatsBarComponent } from '../../components/stats-bar/stats-bar.component';
 import { FilterComponent } from '../../components/filter/filter.component';
 import { PokemonListComponent } from '../../components/pokemon-list/pokemon-list.component';
-import { PokemonCardComponent } from '../../components/pokemon-card/pokemon-card.component';
 
 @Component({
   selector: 'app-pokedex',
   standalone: true,
-  imports: [
-    CommonModule,
-    HeaderComponent,
-    StatsBarComponent,
-    FilterComponent,
-    PokemonListComponent,
-    PokemonCardComponent,
-  ],
+  imports: [CommonModule, HeaderComponent, FilterComponent, PokemonListComponent],
   templateUrl: './pokedex.component.html',
   styleUrls: ['./pokedex.component.scss']
 })
 export class PokedexComponent implements OnInit {
   loading = true;
-  pokemons: any[] = [];
-  pokemonsFiltrados: any[] = [];
+  pokemons: Pokemon[] = [];
+  pokemonsFiltrados: Pokemon[] = [];
   favoritos: string[] = [];
   equipe: string[] = [];
 
-  filtroNome: string = '';
-  filtroTipo: string = 'All';
+  filtroNome = '';
+  filtroTipo = 'All';
   filtroGeracao: number | null = null;
-
-  stats = [
-    { label: 'Pokémon', value: 0 },
-    { label: 'Tipos', value: 0 },
-    { label: 'Gerações', value: 0 }
-  ];
 
   tipos = [
     { nome: 'All', cor: '#A8A878' },
@@ -66,9 +51,9 @@ export class PokedexComponent implements OnInit {
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
-    this.carregarPokemons();
     this.carregarFavoritos();
     this.carregarEquipe();
+    this.carregarPokemons();
   }
 
   calcularGeracao(id: number): number {
@@ -83,137 +68,77 @@ export class PokedexComponent implements OnInit {
     return 9;
   }
 
-  // ------------------ CARREGAR POKEMONS ------------------
+  carregarFavoritos() {
+    const token = localStorage.getItem('access_token');
+    this.http.get<any[]>(`${environment.apiBase}/favoritos/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe(res => this.favoritos = res.map(p => p.nome));
+  }
+
+  carregarEquipe() {
+    const token = localStorage.getItem('access_token');
+    this.http.get<any[]>(`${environment.apiBase}/batalha/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe(res => this.equipe = res.map(p => p.nome));
+  }
+
   carregarPokemons() {
     this.loading = true;
     const token = localStorage.getItem('access_token');
 
-    this.http.get(`${environment.apiBase}/pokemons/`, {
+    this.http.get<any[]>(`${environment.apiBase}/pokemons/`, {
       headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
-      next: async (res: any) => {
-        const resultados = res?.results || res || [];
-
-        const promises = resultados.map(async (p: any) => {
-          const id = p.url?.split('/')[6];
-          const detalhe: any = await this.http.get(`https://pokeapi.co/api/v2/pokemon/${id}`).toPromise();
-
-          return {
-            numero: detalhe.id,
-            nome: detalhe.name,
-            imagem: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
-            tipos: detalhe.types?.map((t: any) => {
-              const typeName = t.type.name;
-              const tipoEncontrado = this.tipos.find(tp => tp.nome.toLowerCase() === typeName.toLowerCase());
-              return {
-                nome: typeName,
-                cor: tipoEncontrado ? tipoEncontrado.cor : '#A8A878'
-              };
-            }) || [],
-            stats: detalhe.stats?.map((s: any) => ({
-              label: s.stat.name,
-              valor: s.base_stat
-            })) || [],
-            favorito: this.favoritos.includes(detalhe.name),
-            equipe: this.equipe.includes(detalhe.name),
-            geracao: this.calcularGeracao(detalhe.id)
-          };
-        });
-
-        this.pokemons = await Promise.all(promises);
-        this.pokemonsFiltrados = [...this.pokemons];
-
-        this.stats[0].value = this.pokemons.length;
-        this.stats[1].value = this.tipos.length;
-        this.stats[2].value = 9;
-
-        this.loading = false;
-      },
-      error: err => {
-        console.error('Erro ao carregar pokémons:', err);
-        this.loading = false;
-      }
+    }).subscribe(res => {
+      this.pokemons = res.map(p => ({
+        codigo: Number(p.codigo),
+        nome: p.nome,
+        imagem_url: p.imagem_url, // mantém o nome original
+        geracao: p.geracao || this.calcularGeracao(Number(p.codigo)),
+        favorito: this.favoritos.includes(p.nome),
+        equipe: this.equipe.includes(p.nome),
+        tipos: p.tipos.map((t: any) => ({
+          descricao: t.descricao,
+          cor: this.getTypeColor(t.descricao)
+        })),
+        status: p.stats || []  // mapeia stats do backend para status
+      }));
+      this.pokemonsFiltrados = [...this.pokemons];
+      this.loading = false;
     });
   }
 
-  // ------------------ CARREGAR FAVORITOS ------------------
-  carregarFavoritos() {
+  addFavorito(pokemon: Pokemon) {
     const token = localStorage.getItem('access_token');
-    this.http.get(`${environment.apiBase}/favoritos/`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
-      next: (res: any) => this.favoritos = res.map((p: any) => p.nome),
-      error: err => console.error('Erro ao carregar favoritos:', err)
-    });
+    const body = { nome: pokemon.nome, imagem_url: pokemon.imagem_url, favorito: !pokemon.favorito };
+    this.http.post(`${environment.apiBase}/favoritos/`, body, { headers: { Authorization: `Bearer ${token}` } })
+      .subscribe(() => pokemon.favorito = !pokemon.favorito);
   }
 
-  // ------------------ CARREGAR EQUIPE ------------------
-  carregarEquipe() {
-    const token = localStorage.getItem('access_token');
-    this.http.get(`${environment.apiBase}/batalha/`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
-      next: (res: any) => this.equipe = res.map((p: any) => p.nome),
-      error: err => console.error('Erro ao carregar equipe:', err)
-    });
-  }
-
-  // ------------------ FAVORITOS ------------------
-  addFavorito(pokemon: any) {
-    const token = localStorage.getItem('access_token');
-    const body = { nome: pokemon.nome, imagem_url: pokemon.imagem, favorito: !pokemon.favorito };
-
-    this.http.post(`${environment.apiBase}/favoritos/`, body, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
-      next: () => pokemon.favorito = !pokemon.favorito,
-      error: err => console.error('Erro ao salvar favorito:', err)
-    });
-  }
-
-  // ------------------ EQUIPE ------------------
-  addEquipe(pokemon: any) {
+  addEquipe(pokemon: Pokemon) {
     if (!pokemon.equipe && this.equipe.length >= 6) {
       alert('Você só pode ter até 6 pokémons na equipe!');
       return;
     }
-
     const token = localStorage.getItem('access_token');
-    const body = { nome: pokemon.nome, imagem_url: pokemon.imagem, grupo_batalha: !pokemon.equipe };
-
-    this.http.post(`${environment.apiBase}/batalha/`, body, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
-      next: () => {
+    const body = { nome: pokemon.nome, imagem_url: pokemon.imagem_url, grupo_batalha: !pokemon.equipe };
+    this.http.post(`${environment.apiBase}/batalha/`, body, { headers: { Authorization: `Bearer ${token}` } })
+      .subscribe(() => {
         pokemon.equipe = !pokemon.equipe;
-        if (pokemon.equipe) {
-          this.equipe.push(pokemon.nome);
-        } else {
-          this.equipe = this.equipe.filter(n => n !== pokemon.nome);
-        }
-      },
-      error: err => console.error('Erro ao adicionar à equipe:', err)
-    });
+        if (pokemon.equipe) this.equipe.push(pokemon.nome);
+        else this.equipe = this.equipe.filter(n => n !== pokemon.nome);
+      });
   }
 
-  // ------------------ AJUSTE DE CORES ------------------
   getTypeColor(typeName: string) {
     const tipo = this.tipos.find(t => t.nome.toLowerCase() === typeName.toLowerCase());
     return tipo ? tipo.cor : '#A8A878';
   }
 
-  // ------------------ FILTRAR POKÉMONS ------------------
   filtrarPokemons() {
     this.pokemonsFiltrados = this.pokemons.filter(p => {
-      const filtrarNome = this.filtroNome
-        ? p.nome.toLowerCase().includes(this.filtroNome.toLowerCase())
-        : true;
-      const filtrarTipo = this.filtroTipo && this.filtroTipo !== 'All'
-        ? p.tipos.some((t: any) => t.nome.toLowerCase() === this.filtroTipo.toLowerCase())
-        : true;
-      const filtrarGeracao = this.filtroGeracao
-        ? p.geracao === this.filtroGeracao
-        : true;
+      const filtrarNome = this.filtroNome ? p.nome.toLowerCase().includes(this.filtroNome.toLowerCase()) : true;
+      const filtrarTipo = this.filtroTipo !== 'All' ? p.tipos.some(t => t.descricao.toLowerCase() === this.filtroTipo.toLowerCase()) : true;
+      const filtrarGeracao = this.filtroGeracao ? p.geracao === this.filtroGeracao : true;
       return filtrarNome && filtrarTipo && filtrarGeracao;
     });
   }

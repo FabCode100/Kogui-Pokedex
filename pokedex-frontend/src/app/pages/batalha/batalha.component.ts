@@ -40,36 +40,32 @@ export class BatalhaComponent implements OnInit {
         this.carregarEquipe();
     }
 
-    carregarEquipe() {
+    async carregarEquipe() {
         const token = localStorage.getItem('access_token');
         this.http.get<any[]>(`${environment.apiBase}/batalha/`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).subscribe(async res => {
-            const promises = res.map(async p => {
-                const detalhe: any = await this.http
-                    .get(`https://pokeapi.co/api/v2/pokemon/${p.nome}`)
-                    .toPromise();
+  headers: { Authorization: `Bearer ${token}` }
+}).subscribe(res => {
+  this.equipe = res.map(p => ({
+    codigo: p.codigo,
+    nome: p.nome,
+    imagem_url: p.imagem_url,
+    tipos: Array.isArray(p.tipos) ? p.tipos.map((t: any) => {
+      const tipoEncontrado = this.tipos.find(tp => tp.nome.toLowerCase() === t.descricao.toLowerCase());
+      return {
+        descricao: t.descricao,
+        cor: tipoEncontrado ? tipoEncontrado.cor : '#A8A878'
+      };
+    }) : [],
+    // Transformando objeto stats em array
+    status: p.stats
+      ? Object.entries(p.stats).map(([key, value]) => ({ nome: key, valor: value as number }))
+      : [],
+    favorito: p.favorito,
+    equipe: p.grupo_batalha,
+    geracao: p.geracao
+  }));
+}, err => console.error('Erro ao carregar equipe:', err));
 
-                return {
-                    numero: detalhe.id,
-                    nome: detalhe.name,
-                    imagem: detalhe.sprites?.front_default || null,
-                    tipos: detalhe.types?.map((t: any) => {
-                        const tipoEncontrado = this.tipos.find(tp => tp.nome.toLowerCase() === t.type.name.toLowerCase());
-                        return {
-                            nome: t.type.name,
-                            cor: tipoEncontrado ? tipoEncontrado.cor : '#A8A878'
-                        };
-                    }) || [],
-                    stats: detalhe.stats?.map((s: any) => ({
-                        label: s.stat.name,
-                        valor: s.base_stat
-                    })) || []
-                };
-            });
-
-            this.equipe = await Promise.all(promises);
-        }, err => console.error('Erro ao carregar equipe:', err));
     }
 
     removerEquipe(nome: string) {
@@ -86,5 +82,11 @@ export class BatalhaComponent implements OnInit {
     getTypeColor(typeName: string) {
         const tipo = this.tipos.find(t => t.nome.toLowerCase() === typeName.toLowerCase());
         return tipo ? tipo.cor : '#A8A878';
+    }
+
+    // Dummy handler para bind de addEquipe do PokemonCardComponent
+    handleAddEquipe(pokemon: any) {
+        // Pode implementar lógica futura se quiser permitir mover/remover da equipe
+        console.log('Evento addEquipe disparado para:', pokemon.nome);
     }
 }

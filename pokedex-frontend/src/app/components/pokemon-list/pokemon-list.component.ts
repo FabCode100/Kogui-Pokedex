@@ -1,6 +1,8 @@
+// src/app/components/pokemon-list/pokemon-list.component.ts
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PokemonCardComponent } from '../pokemon-card/pokemon-card.component';
+import { Pokemon } from '../../Models/pokemon.model';
 
 @Component({
     selector: 'app-pokemon-list',
@@ -10,9 +12,7 @@ import { PokemonCardComponent } from '../pokemon-card/pokemon-card.component';
     styleUrls: ['./pokemon-list.component.scss']
 })
 export class PokemonListComponent {
-    @Input() pokemons: any[] = [];
-
-    // funções vindas do componente pai (PokedexComponent)
-    @Input() addFavorito!: (pokemon: any) => void;
-    @Input() addEquipe!: (pokemon: any) => void;
+    @Input() pokemons: Pokemon[] = [];
+    @Input() addFavorito!: (pokemon: Pokemon) => void;
+    @Input() addEquipe!: (pokemon: Pokemon) => void;
 }

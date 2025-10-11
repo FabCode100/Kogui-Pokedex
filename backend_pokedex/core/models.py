@@ -69,6 +69,7 @@ class PokemonUsuario(models.Model):
     imagem_url = models.URLField()
     grupo_batalha = models.BooleanField(default=False)
     favorito = models.BooleanField(default=False)
+    geracao = models.IntegerField(default=1) 
 
     def __str__(self):
         return self.nome

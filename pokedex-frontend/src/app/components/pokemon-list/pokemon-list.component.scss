@@ -1,24 +1,6 @@
-.pokemons-grid {
+.pokemon-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    /* largura mínima 220px por card */
-    gap: 24px;
-    /* aumenta o espaço entre os cards */
-    padding: 16px;
-}
-
-.card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    /* deixa o card ocupar o espaço do grid */
-    max-width: 220px;
-    /* largura máxima */
-    text-align: center;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); // cada card mínimo 200px, se encaixa responsivo
+    gap: 1rem; // espaço entre os cards
+    padding: 1rem;
 }

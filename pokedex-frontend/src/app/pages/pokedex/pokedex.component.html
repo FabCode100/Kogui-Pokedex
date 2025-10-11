@@ -1,32 +1,14 @@
 <app-header></app-header>
-<div class="stats-summary">
-    <div class="stat-item">
-        <h3>{{ stats[0].value }}</h3>
-        <p>Pokémons</p>
-    </div>
-    <div class="stat-item">
-        <h3>{{ stats[1].value }}</h3>
-        <p>Tipos</p>
-    </div>
-    <div class="stat-item">
-        <h3>{{ stats[2].value }}</h3>
-        <p>Gerações</p>
-    </div>
-</div>
+
 <app-filter [tipos]="tipos" (filterChange)="filtroTipo = $event; filtrarPokemons()"
     (generationChange)="filtroGeracao = $event; filtrarPokemons()"
-    (nameChange)="filtroNome = $event; filtrarPokemons()"></app-filter>
+    (nameChange)="filtroNome = $event; filtrarPokemons()">
+</app-filter>
 
-
-<!-- Loading -->
 <p class="loading" *ngIf="loading">Carregando Pokémons...</p>
 
-<!-- Lista de Pokémons -->
 <app-pokemon-list *ngIf="!loading && pokemonsFiltrados.length > 0" [pokemons]="pokemonsFiltrados"
     [addFavorito]="addFavorito.bind(this)" [addEquipe]="addEquipe.bind(this)">
 </app-pokemon-list>
 
-<!-- Caso não tenha resultados -->
-<ng-template #vazio>
-    <p class="loading">Nenhum Pokémon encontrado para este tipo.</p>
-</ng-template>
+<p class="loading" *ngIf="!loading && pokemonsFiltrados.length === 0">Nenhum Pokémon encontrado.</p>

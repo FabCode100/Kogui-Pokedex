@@ -1,105 +1,171 @@
+import asyncio
+import aiohttp
+from asgiref.sync import sync_to_async
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from rest_framework import generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import generics, permissions, status
-from rest_framework import serializers
-import requests
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
-from django.core.mail import send_mail
-from .models import PokemonUsuario
-from django.contrib.auth import get_user_model
-from .serializers import RegisterSerializer, UserSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer
 
-# ---------------------- LISTAGEM DE POKÉMONS ----------------------
-class PokemonListView(APIView):
-    permission_classes = [IsAuthenticated]
+from .models import PokemonUsuario, TipoPokemon
+from .serializers import (
+    RegisterSerializer, UserSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    PokemonUsuarioSerializer
+)
 
-    def get(self, request):
-        response = requests.get('https://pokeapi.co/api/v2/pokemon?limit=20')
-        data = response.json()
-        return Response(data['results'])
-
-
-# ---------------------- FAVORITOS ----------------------
-class FavoritosView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        usuario = request.user
-        favoritos = PokemonUsuario.objects.filter(usuario=usuario, favorito=True)
-        data = [{"nome": p.nome, "imagem": p.imagem_url} for p in favoritos]
-        return Response(data)
-
-    def post(self, request):
-        usuario = request.user
-        nome = request.data.get("nome")
-        imagem_url = request.data.get("imagem_url")
-        favorito = request.data.get("favorito", True)
-
-        if not nome or not imagem_url:
-            return Response(
-                {"detail": "Campos 'nome' e 'imagem_url' são obrigatórios."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Cria ou atualiza o Pokémon favorito
-        pokemon, created = PokemonUsuario.objects.get_or_create(
-            usuario=usuario,
-            nome=nome,
-            defaults={"imagem_url": imagem_url, "favorito": favorito}
-        )
-
-        if not created:
-            pokemon.favorito = favorito
-            pokemon.imagem_url = imagem_url
-            pokemon.save()
-
-        msg = "Adicionado aos favoritos!" if favorito else "Removido dos favoritos!"
-        return Response({"nome": pokemon.nome, "favorito": pokemon.favorito, "mensagem": msg})
-
-
-# ---------------------- EQUIPE DE BATALHA ----------------------
-class EquipeBatalhaView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        usuario = request.user
-        equipe = PokemonUsuario.objects.filter(usuario=usuario, grupo_batalha=True)
-        data = [{"nome": p.nome, "imagem": p.imagem_url} for p in equipe]
-        return Response(data)
-
-    def post(self, request):
-        usuario = request.user
-        nome = request.data.get("nome")
-        imagem_url = request.data.get("imagem_url")
-        grupo_batalha = request.data.get("grupo_batalha", True)
-
-        if not nome or not imagem_url:
-            return Response(
-                {"detail": "Campos 'nome' e 'imagem_url' são obrigatórios."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        pokemon, created = PokemonUsuario.objects.get_or_create(
-            usuario=usuario,
-            nome=nome,
-            defaults={"imagem_url": imagem_url, "grupo_batalha": grupo_batalha}
-        )
-
-        if not created:
-            pokemon.grupo_batalha = grupo_batalha
-            pokemon.imagem_url = imagem_url
-            pokemon.save()
-
-        msg = "Adicionado à equipe de batalha!" if grupo_batalha else "Removido da equipe!"
-        return Response({"nome": pokemon.nome, "grupo_batalha": pokemon.grupo_batalha, "mensagem": msg})
-
-
-# ---------------------- USUÁRIOS ----------------------
 User = get_user_model()
 
+
+# ------------------------------------------------------------
+# FUNÇÕES ASYNC DE BUSCA DE DADOS
+# ------------------------------------------------------------
+async def fetch_json(session, url):
+    try:
+        async with session.get(url, timeout=10) as resp:
+            if resp.status != 200:
+                return None
+            return await resp.json()
+    except Exception as e:
+        print(f"Erro ao acessar {url}: {e}")
+        return None
+
+
+async def fetch_pokemons_data(limit=30):
+    """Busca lista e detalhes dos pokémons da PokeAPI"""
+    async with aiohttp.ClientSession() as session:
+        main_url = f"https://pokeapi.co/api/v2/pokemon?limit={limit}"
+        main_data = await fetch_json(session, main_url)
+        if not main_data:
+            return []
+
+        tasks = [fetch_json(session, p['url']) for p in main_data.get('results', [])]
+        detalhes = await asyncio.gather(*tasks)
+        return [d for d in detalhes if d]
+
+
+# ------------------------------------------------------------
+# SALVAR POKÉMON NO BANCO
+# ------------------------------------------------------------
+async def sync_pokemon_to_db(user, detalhe):
+    """Cria ou atualiza o pokémon do usuário"""
+    nome = detalhe['name']
+    codigo = detalhe['id']
+    imagem_url = (
+        detalhe['sprites']['front_default']
+        or f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{codigo}.png"
+    )
+    tipos_lista = [t['type']['name'] for t in detalhe['types']]
+
+    pokemon_obj, created = await sync_to_async(PokemonUsuario.objects.get_or_create)(
+        usuario=user,
+        nome=nome,
+        defaults={
+            'codigo': str(codigo),
+            'imagem_url': imagem_url,
+            'favorito': False,
+            'grupo_batalha': False
+        }
+    )
+
+    for tipo in tipos_lista:
+        tipo_obj, _ = await sync_to_async(TipoPokemon.objects.get_or_create)(descricao=tipo)
+        await sync_to_async(pokemon_obj.tipos.add)(tipo_obj)
+
+    if not created:
+        pokemon_obj.codigo = str(codigo)
+        pokemon_obj.imagem_url = imagem_url
+        await sync_to_async(pokemon_obj.save)()
+
+    # Montar o campo de status (stats)
+    stats_lista = [
+        {"nome": s['stat']['name'], "valor": s['base_stat']}
+        for s in detalhe['stats']
+    ]
+
+    return {
+        "codigo": codigo,
+        "nome": nome,
+        "imagem_url": imagem_url,
+        "tipos": [{"descricao": t} for t in tipos_lista],
+        "stats": stats_lista,
+    }
+
+
+# ------------------------------------------------------------
+# LISTAR / SINCRONIZAR POKÉMONS
+# ------------------------------------------------------------
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pokemons_list(request):
+    """Busca os pokémons da API e salva no banco (async), depois retorna o resultado completo"""
+    user = request.user
+
+    async def main():
+        detalhes = await fetch_pokemons_data()
+        tasks = [sync_pokemon_to_db(user, d) for d in detalhes]
+        pokemons_detalhados = await asyncio.gather(*tasks)
+        return pokemons_detalhados
+
+    pokemons_detalhados = asyncio.run(main())
+    return Response(pokemons_detalhados)
+
+
+# ------------------------------------------------------------
+# FAVORITOS
+# ------------------------------------------------------------
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def favoritos_list(request):
+    if request.method == 'GET':
+        pokemons = PokemonUsuario.objects.filter(usuario=request.user, favorito=True)
+        serializer = PokemonUsuarioSerializer(pokemons, many=True)
+        return Response(serializer.data)
+
+    data = request.data
+    try:
+        pokemon = PokemonUsuario.objects.get(usuario=request.user, nome=data['nome'])
+        pokemon.favorito = not pokemon.favorito
+        pokemon.save()
+        serializer = PokemonUsuarioSerializer(pokemon)
+        return Response(serializer.data)
+    except PokemonUsuario.DoesNotExist:
+        return Response({'error': 'Pokémon não encontrado'}, status=404)
+
+
+# ------------------------------------------------------------
+# GRUPO DE BATALHA
+# ------------------------------------------------------------
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def batalha_list(request):
+    if request.method == 'GET':
+        pokemons = PokemonUsuario.objects.filter(usuario=request.user, grupo_batalha=True)
+        serializer = PokemonUsuarioSerializer(pokemons, many=True)
+        return Response(serializer.data)
+
+    data = request.data
+    try:
+        pokemon = PokemonUsuario.objects.get(usuario=request.user, nome=data['nome'])
+        if not pokemon.grupo_batalha:
+            if PokemonUsuario.objects.filter(usuario=request.user, grupo_batalha=True).count() >= 6:
+                return Response({'error': 'Máximo de 6 pokémons na equipe'}, status=400)
+        pokemon.grupo_batalha = not pokemon.grupo_batalha
+        pokemon.save()
+        serializer = PokemonUsuarioSerializer(pokemon)
+        return Response(serializer.data)
+    except PokemonUsuario.DoesNotExist:
+        return Response({'error': 'Pokémon não encontrado'}, status=404)
+
+
+# ------------------------------------------------------------
+# AUTENTICAÇÃO / PERFIL
+# ------------------------------------------------------------
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -114,7 +180,9 @@ class ProfileView(generics.RetrieveAPIView):
         return self.request.user
 
 
-# ---------------------- RESET DE SENHA ----------------------
+# ------------------------------------------------------------
+# RESET DE SENHA
+# ------------------------------------------------------------
 class PasswordResetRequestView(APIView):
     permission_classes = []
 
@@ -130,8 +198,6 @@ class PasswordResetRequestView(APIView):
 
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-
-        # Link que o frontend usaria para reset
         reset_link = f"http://localhost:4200/reset-password-confirm/{uid}/{token}/"
 
         send_mail(
@@ -141,8 +207,8 @@ class PasswordResetRequestView(APIView):
             [user.email],
             fail_silently=False
         )
-
         return Response({"detail": "Email de reset enviado!"}, status=status.HTTP_200_OK)
+
 
 class PasswordResetConfirmView(APIView):
     permission_classes = []
@@ -166,5 +232,4 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(new_password)
         user.save()
-
         return Response({"detail": "Senha alterada com sucesso!"}, status=status.HTTP_200_OK)

@@ -1,9 +1,10 @@
+// src/app/Models/pokemon.model.ts
 export interface Pokemon {
-    numero: number;
+    codigo: number;
     nome: string;
-    imagem: string;
-    tipos: { nome: string; cor: string }[];
-    stats: { label: string; valor: number }[];
+    imagem_url: string;
+    tipos: { descricao: string; cor?: string }[];
+    status: { nome: string; valor: number }[];  // mudar de label para nome
     favorito: boolean;
     equipe: boolean;
     geracao: number;
