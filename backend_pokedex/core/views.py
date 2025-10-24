@@ -53,7 +53,6 @@ async def fetch_pokemons_data(limit=30):
 # SALVAR POKÉMON NO BANCO
 # ------------------------------------------------------------
 async def sync_pokemon_to_db(user, detalhe):
-    """Cria ou atualiza o pokémon do usuário"""
     nome = detalhe['name']
     codigo = detalhe['id']
     imagem_url = (
@@ -61,32 +60,30 @@ async def sync_pokemon_to_db(user, detalhe):
         or f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{codigo}.png"
     )
     tipos_lista = [t['type']['name'] for t in detalhe['types']]
+    stats_lista = {s['stat']['name']: s['base_stat'] for s in detalhe['stats']}
 
     pokemon_obj, created = await sync_to_async(PokemonUsuario.objects.get_or_create)(
         usuario=user,
         nome=nome,
         defaults={
-            'codigo': str(codigo),
+            'codigo': codigo,
             'imagem_url': imagem_url,
             'favorito': False,
-            'grupo_batalha': False
+            'grupo_batalha': False,
+            'stats_cache': stats_lista  # salva aqui
         }
     )
 
+    # Atualiza tipos e stats caso já exista
     for tipo in tipos_lista:
         tipo_obj, _ = await sync_to_async(TipoPokemon.objects.get_or_create)(descricao=tipo)
         await sync_to_async(pokemon_obj.tipos.add)(tipo_obj)
 
     if not created:
-        pokemon_obj.codigo = str(codigo)
+        pokemon_obj.codigo = codigo
         pokemon_obj.imagem_url = imagem_url
+        pokemon_obj.stats_cache = stats_lista
         await sync_to_async(pokemon_obj.save)()
-
-    # Montar o campo de status (stats)
-    stats_lista = [
-        {"nome": s['stat']['name'], "valor": s['base_stat']}
-        for s in detalhe['stats']
-    ]
 
     return {
         "codigo": codigo,
@@ -103,17 +100,21 @@ async def sync_pokemon_to_db(user, detalhe):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def pokemons_list(request):
-    """Busca os pokémons da API e salva no banco (async), depois retorna o resultado completo"""
     user = request.user
+    pokemons_existentes = PokemonUsuario.objects.filter(usuario=user)
+
+    if pokemons_existentes.exists():
+        serializer = PokemonUsuarioSerializer(pokemons_existentes, many=True)
+        return Response(serializer.data)
 
     async def main():
-        detalhes = await fetch_pokemons_data()
+        detalhes = await fetch_pokemons_data(limit=30)
         tasks = [sync_pokemon_to_db(user, d) for d in detalhes]
-        pokemons_detalhados = await asyncio.gather(*tasks)
-        return pokemons_detalhados
+        return await asyncio.gather(*tasks)
 
     pokemons_detalhados = asyncio.run(main())
     return Response(pokemons_detalhados)
+
 
 
 # ------------------------------------------------------------

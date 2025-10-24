@@ -70,6 +70,7 @@ class PokemonUsuario(models.Model):
     grupo_batalha = models.BooleanField(default=False)
     favorito = models.BooleanField(default=False)
     geracao = models.IntegerField(default=1) 
+    stats_cache = models.JSONField(null=True, blank=True) 
 
     def __str__(self):
         return self.nome

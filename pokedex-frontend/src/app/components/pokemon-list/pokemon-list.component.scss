@@ -1,6 +1,14 @@
 .pokemon-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); // cada card mínimo 200px, se encaixa responsivo
-    gap: 1rem; // espaço entre os cards
-    padding: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px;
+    /* aumenta um pouco o espaço entre os cards */
+    padding: 24px;
+    justify-items: center;
+    /* centraliza os cards no grid */
+    align-items: start;
+    /* evita sobreposição vertical */
+    width: 100%;
+    box-sizing: border-box;
+    /* garante que padding não estoure o layout */
 }

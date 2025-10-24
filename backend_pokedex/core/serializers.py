@@ -21,17 +21,8 @@ class PokemonUsuarioSerializer(serializers.ModelSerializer):
         ]
 
     def get_stats(self, obj):
-        """Busca os stats básicos da PokeAPI."""
-        try:
-            url = f"https://pokeapi.co/api/v2/pokemon/{obj.codigo}"
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                stats = {s['stat']['name']: s['base_stat'] for s in data['stats']}
-                return stats
-        except Exception:
-            return {}
-        return {}
+        return obj.stats_cache or {}
+
 
         
 class RegisterSerializer(serializers.ModelSerializer):

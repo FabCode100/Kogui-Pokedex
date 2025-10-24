@@ -1,31 +1,41 @@
 .pokemons-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    padding: 16px;
+    gap: 24px;
+    /* aumenta um pouco o espaço entre os cards */
+    padding: 24px;
     justify-items: center;
     /* centraliza os cards no grid */
+    align-items: start;
+    /* evita sobreposição vertical */
+    width: 100%;
+    box-sizing: border-box;
+    /* garante que padding não estoure o layout */
 }
 
+/* Loading estilizado */
 .loading {
     text-align: center;
     font-size: 1.125rem;
-    /* leve ajuste de tamanho */
     color: #6b7280;
     margin: 40px 0 0 0;
 }
 
+/* Resumo dos stats */
 .stats-summary {
     background: linear-gradient(135deg, #1976d2, #42a5f5);
     color: white;
     display: flex;
+    flex-wrap: wrap;
+    /* permite quebrar em telas pequenas */
     justify-content: center;
     align-items: center;
-    gap: 40px;  
-    padding: 24px 0;
+    gap: 40px;
+    padding: 24px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    margin: 10px auto;
+    margin: 20px auto;
     width: 100%;
+    border-radius: 12px;
 }
 
 .stat-item {
@@ -47,4 +57,17 @@
     font-size: 1rem;
     opacity: 0.9;
     margin: 0;
+}
+
+/* Ajuste responsivo */
+@media (max-width: 600px) {
+    .pokemons-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .stat-item h3 {
+        font-size: 1.5rem;
+    }
 }
