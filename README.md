@@ -4,8 +4,6 @@
 > Permite visualizar, filtrar e organizar Pokémons, marcar favoritos, montar equipes de batalha e gerenciar seu perfil de usuário.  
 > Tudo isso com **autenticação JWT**, **reset de senha por e-mail** e **UI dinâmica com modal e efeitos de loading.**
 
----
-
 ## 🧱 Stack Tecnológica
 
 ![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular&logoColor=white)
