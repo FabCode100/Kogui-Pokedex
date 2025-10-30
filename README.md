@@ -265,6 +265,3 @@ Ideal para usuários autenticados e novos visitantes explorarem o sistema.
 ---
 
 > 💡 *“Treine como Ash, pense como Oak e codifique como um verdadeiro Mestre Pokémon.”* 🧠⚡
-
-```
-
