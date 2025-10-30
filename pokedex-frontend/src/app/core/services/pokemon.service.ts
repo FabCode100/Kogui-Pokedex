@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 import { Pokemon } from '../models/pokemon.model';
+import { PokemonDetalhe } from '../../Models/pokemon-detalhe.model';
 
 @Injectable({ providedIn: 'root' })
 export class PokemonService {
@@ -13,6 +14,9 @@ export class PokemonService {
     // lista (do seu endpoint Django)
     getPokemons(): Observable<any> {
         return this.http.get(`${this.base}/pokemons/`);
+    }
+    getPokemonDetalhe(codigo: number): Observable<PokemonDetalhe> {
+        return this.http.get<PokemonDetalhe>(`/api/pokemon/${codigo}/detalhe`);
     }
 
     // favoritos do usuário

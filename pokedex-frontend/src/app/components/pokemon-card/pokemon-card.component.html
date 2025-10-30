@@ -12,28 +12,22 @@
     </div>
 
     <h3 class="pokemon-name">{{ pokemon.nome | titlecase }}</h3>
-    <p class="pokemon-geracao">Geração: {{ pokemon.geracao }}</p>
-
-    <div class="stats" *ngIf="pokemon.status?.length">
-        <div *ngFor="let s of pokemon.status" class="stat">
-            <div class="stat-header">
-                <span class="stat-label">{{ s.nome | titlecase }}</span> <!-- lado esquerdo -->
-                <span class="stat-value">{{ s.valor }}</span> <!-- lado direito -->
-            </div>
-            <div class="progress-bar">
-                <div class="progress" [style.width.%]="s.valor"></div>
-            </div>
-        </div>
-    </div>
-
-
+    <p class="pokemon-geracao">{{ getNomeGeracao(pokemon.geracao) }}</p>
 
     <div class="actions">
-        <button (click)="onAddFavorito()" [class.active]="pokemon.favorito">
-            {{ pokemon.favorito ? '★ Favorito' : '☆ Favorito' }}
+        <button class="btn-view" (click)="verMais()">Ver mais</button>
+
+        <!-- Botão Favorito -->
+        <button class="btn-icon" [class.active]="favoritoAtivo" (click)="adicionarFavorito()"
+            matTooltip="{{ favoritoAtivo ? 'Remover dos favoritos' : 'Adicionar aos favoritos' }}">
+            <mat-icon>{{ favoritoAtivo ? 'favorite' : 'favorite_border' }}</mat-icon>
         </button>
-        <button (click)="onAddEquipe()" [class.active]="pokemon.equipe">
-            {{ pokemon.equipe ? 'Equipe' : 'Adicionar à Equipe' }}
+
+        <!-- Botão Equipe -->
+        <button mat-raised-button color="{{ equipeAtiva ? 'warn' : 'primary' }}"
+            matTooltip="{{ equipeAtiva ? 'Remover da equipe' : 'Adicionar à equipe' }}" (click)="adicionarEquipe()">
+            <mat-icon>{{ equipeAtiva ? 'remove_circle' : 'add_circle' }}</mat-icon>
+            {{ equipeAtiva ? 'Remover' : 'Adicionar' }}
         </button>
     </div>
 </div>

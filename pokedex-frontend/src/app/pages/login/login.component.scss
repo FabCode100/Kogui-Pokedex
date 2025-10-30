@@ -1,11 +1,9 @@
-/* login.component.scss */
-
 :host {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: linear-gradient(135deg, #f5f5dc, #ffeaa7); // tons leves Pokémon
+    background: linear-gradient(135deg, #0f172a, #1e293b); // tons escuros da home/pokedex
     font-family: 'Poppins', sans-serif;
 }
 
@@ -13,17 +11,17 @@ mat-card {
     width: 400px;
     padding: 2.5rem;
     border-radius: 16px;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
-    background-color: #fff8e7;
+    box-shadow: 0 12px 24px rgba(56, 189, 248, 0.3);
+    background-color: #1e293b; // escuro
     text-align: center;
-    border: 2px solid #f8c300; // cor Pokémon
+    border: 2px solid #38bdf8; // ciano destaque
 
     h2 {
         margin-bottom: 2rem;
-        color: #f08030; // cor laranja estilo Fire type
+        color: #38bdf8; // azul ciano estilo glow
         font-size: 1.8rem;
         font-weight: 700;
-        text-shadow: 1px 1px 2px #ffd700;
+        text-shadow: 0 0 8px #38bdf8;
     }
 
     form {
@@ -36,24 +34,32 @@ mat-card {
         }
 
         mat-form-field {
-            background-color: #fff3d6;
+            background-color: #0f172a;
             border-radius: 8px;
+
+            .mat-input-element {
+                color: #f8fafc;
+            }
+
+            .mat-form-field-label {
+                color: #94a3b8;
+            }
         }
 
         button {
-            background-color: #f08030;
-            color: white;
+            background-color: #38bdf8;
+            color: #0f172a;
             font-weight: 600;
             padding: 0.75rem;
             transition: 0.3s;
 
             &:hover {
-                background-color: #ff9b42;
+                background-color: #0ea5e9;
             }
         }
 
         .error {
-            color: #e53935;
+            color: #f87171; // vermelho claro para erro
             font-weight: 500;
             margin-top: -0.5rem;
             font-size: 0.9rem;
@@ -62,10 +68,10 @@ mat-card {
         p {
             margin-top: 1rem;
             font-size: 0.9rem;
-            color: #555;
+            color: #cbd5e1;
 
             a {
-                color: #1976d2;
+                color: #38bdf8;
                 font-weight: 500;
                 text-decoration: none;
 

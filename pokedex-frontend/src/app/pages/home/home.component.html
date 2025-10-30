@@ -1,0 +1,46 @@
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="logo">Pokédex</div>
+    <ul class="nav-links">
+        <li><a routerLink="/login">Login</a></li>
+        <li><a routerLink="/pokemons">Pokédex</a></li>
+    </ul>
+</nav>
+
+<!-- Conteúdo principal -->
+<div class="main-container">
+    <!-- Splash Art -->
+    <div class="splash-art">
+        <h1>Bem-vindo à Pokédex!</h1>
+        <p>Confira os melhores Pokémons e top players da região.</p>
+    </div>
+
+    <!-- Melhores Pokémons -->
+    <section class="melhores-pokemons">
+        <h2>Melhores Pokémons</h2>
+        <div class="pokemons-grid">
+            <div class="pokemon-card-wrapper" *ngFor="let p of melhoresPokemons">
+                <app-pokemon-card [pokemon]="p" (clickVerMais)="openDetail($event)">
+                </app-pokemon-card>
+            </div>
+        </div>
+    </section>
+
+    <!-- Top Players -->
+    <section class="top-players">
+        <h2>Top Players</h2>
+        <div class="players-grid">
+            <div class="player-card" *ngFor="let player of topPlayers">
+                <img [src]="player.avatar" [alt]="player.nome">
+                <h3>{{ player.nome }}</h3>
+                <p>Nível: {{ player.nivel }}</p>
+            </div>
+        </div>
+    </section>
+</div>
+<footer>
+    <p>&copy; 2025 PokeDex App</p>
+</footer>
+<!-- Modal Detalhe Pokémon -->
+<app-pokemon-detail *ngIf="showDetail" [pokemon]="selectedPokemon!" (close)="closeDetail()">
+</app-pokemon-detail>

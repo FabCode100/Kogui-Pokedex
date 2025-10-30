@@ -19,6 +19,7 @@ urlpatterns = [
 
     # Pokémons
     path('pokemons/', views.pokemons_list),
+    path('pokemons/<int:pokemon_id>/', views.pokemon_detalhe, name='pokemon_detalhe'),
     path('favoritos/', views.favoritos_list),
     path('batalha/', views.batalha_list),
 

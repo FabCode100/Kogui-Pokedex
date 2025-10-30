@@ -1,4 +1,4 @@
 <div class="team-grid">
-    <app-pokemon-card *ngFor="let p of equipe" [pokemon]="p" (addEquipe)="removerEquipe($event.nome)">
+    <app-pokemon-card *ngFor="let p of equipe" [pokemon]="p" (clickEquipe)="removerEquipe($event.nome)">
     </app-pokemon-card>
 </div>

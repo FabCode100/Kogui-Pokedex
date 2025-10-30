@@ -1,0 +1,91 @@
+<!-- Overlay -->
+<div class="overlay" *ngIf="visible" (click)="onClose()"></div>
+
+<!-- Modal principal -->
+<div class="modal" *ngIf="visible && pokemon">
+    <!-- Cabeçalho -->
+    <div class="modal-header" [style.background]="pokemon.tipos[0]?.cor || '#ff3b3b'">
+        <div class="header-left">
+            <h2>{{ pokemon.nome | titlecase }}</h2>
+            <span class="code">#{{ pokemon.codigo }}</span>
+        </div>
+
+        <div class="header-right">
+            <button class="favorite" (click)="toggleFavorite()"
+                [title]="pokemon.favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'">
+                <span [class.filled]="pokemon.favorito">♥</span>
+            </button>
+            <button class="close" (click)="onClose()">✕</button>
+        </div>
+    </div>
+
+    <!-- Imagem principal -->
+    <div class="main-image">
+        <div class="image-frame" [style.borderColor]="pokemon.tipos[0]?.cor">
+            <img [src]="pokemon.imagem_url" [alt]="pokemon.nome" />
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button [class.active]="activeTab === 'about'" (click)="setTab('about')">Sobre</button>
+        <button [class.active]="activeTab === 'stats'" (click)="setTab('stats')">Status</button>
+        <button [class.active]="activeTab === 'evolution'" (click)="setTab('evolution')">Evoluções</button>
+        <button [class.active]="activeTab === 'moves'" (click)="setTab('moves')">Movimentos</button>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="tab-content">
+        <!-- Sobre -->
+        <div *ngIf="activeTab === 'about'" class="tab-panel fade-in">
+            <p><strong>Tipo(s):</strong> {{ tiposText }}</p>
+            <p><strong>Habilidades:</strong> {{ habilidadesText || '—' }}</p>
+            <p><strong>Geração:</strong> {{ pokemon.geracao }}</p>
+            <p><strong>Na equipe:</strong> {{ pokemon.equipe ? 'Sim' : 'Não' }}</p>
+
+            <div *ngIf="pokemon.formasAlternativas?.length">
+                <h4>Formas Alternativas</h4>
+                <div class="alt-forms">
+                    <img *ngFor="let f of pokemon.formasAlternativas" [src]="f" [alt]="pokemon.nome" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div *ngIf="activeTab === 'stats'" class="tab-panel fade-in">
+            <div *ngFor="let stat of pokemon.status" class="stat-row">
+                <span>{{ stat.nome }}</span>
+                <div class="bar">
+                    <div class="fill" [style.width.%]="stat.valor" [style.background]="pokemon.tipos[0]?.cor"></div>
+                </div>
+                <span>{{ stat.valor }}</span>
+            </div>
+        </div>
+
+        <!-- Evoluções -->
+        <div *ngIf="activeTab === 'evolution'" class="tab-panel fade-in">
+            <div class="evolution-chain" *ngIf="pokemon.evolutionChain?.length; else noEvo">
+                <div *ngFor="let evo of pokemon.evolutionChain" class="evo-card">
+                    <img [src]="evo.imagem_url" [alt]="evo.nome" />
+                    <span>{{ evo.nome | titlecase }}</span>
+                </div>
+            </div>
+            <ng-template #noEvo>
+                <p>Sem evoluções disponíveis.</p>
+            </ng-template>
+        </div>
+
+        <!-- Movimentos -->
+        <div *ngIf="activeTab === 'moves'" class="tab-panel fade-in">
+            <ul>
+                <li *ngFor="let move of pokemon.movimentos">
+                    <strong>{{ move.nome }}</strong> — {{ move.tipo }}
+                    <span *ngIf="move.categoria">({{ move.categoria }})</span>
+                    <span *ngIf="move.level"> • Lv {{ move.level }}</span>
+                    <span *ngIf="move.power"> • Poder: {{ move.power }}</span>
+                    <span *ngIf="move.pp"> • PP: {{ move.pp }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

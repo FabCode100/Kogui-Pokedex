@@ -17,6 +17,9 @@ export class FilterComponent {
   filtroTipo: string = '';
   filtroGeracao: number | null = null;
   filtroNome: string = '';
+  showTipos = false;
+  showGeracoes = false;
+
 
   selecionarTipo(tipo: string) {
     this.filtroTipo = tipo;

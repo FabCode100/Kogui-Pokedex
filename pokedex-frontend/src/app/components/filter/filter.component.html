@@ -1,19 +1,35 @@
-<!-- Filtros por tipo -->
-<div class="filter-bar">
-    <button *ngFor="let t of tipos" [style.background]="t.cor" (click)="selecionarTipo(t.nome)">
-        {{ t.nome }}
-    </button>
-</div>
+<div class="filter-container">
+    <div class="dropdown-group">
+        <!-- Dropdown Tipos -->
+        <div class="dropdown">
+            <button class="dropdown-btn" (click)="showTipos = !showTipos">
+                {{ filtroTipo || 'Filtrar por Tipo' }}
+                <span class="arrow" [class.open]="showTipos">▼</span>
+            </button>
+            <div class="dropdown-menu" *ngIf="showTipos">
+                <button *ngFor="let t of tipos" [style.background]="t.cor"
+                    (click)="selecionarTipo(t.nome); showTipos = false">
+                    {{ t.nome }}
+                </button>
+            </div>
+        </div>
 
-<!-- Filtros por geração -->
-<div class="filter-bar generations">
-    <button *ngFor="let g of [1,2,3,4,5,6,7,8,9]" [ngClass]="'geracao-' + g" (click)="selecionarGeracao(g)">
-        Geração {{ g }}
-    </button>
-</div>
+        <!-- Dropdown Gerações -->
+        <div class="dropdown">
+            <button class="dropdown-btn" (click)="showGeracoes = !showGeracoes">
+                {{ filtroGeracao ? 'Geração ' + filtroGeracao : 'Filtrar por Geração' }}
+                <span class="arrow" [class.open]="showGeracoes">▼</span>
+            </button>
+            <div class="dropdown-menu" *ngIf="showGeracoes">
+                <button *ngFor="let g of [1,2,3,4,5,6,7,8,9]" (click)="selecionarGeracao(g); showGeracoes = false">
+                    Geração {{ g }}
+                </button>
+            </div>
+        </div>
+    </div>
 
-
-<!-- Busca por nome -->
-<div class="search-bar">
-    <input type="text" placeholder="Buscar por nome..." (input)="buscarNome($event)">
+    <!-- Barra de busca -->
+    <div class="search-bar">
+        <input type="text" placeholder="Buscar por nome..." (input)="buscarNome($event)" />
+    </div>
 </div>

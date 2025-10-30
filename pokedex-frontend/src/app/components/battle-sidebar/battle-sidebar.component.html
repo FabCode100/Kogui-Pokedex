@@ -1,0 +1,41 @@
+<div class="battle-sidebar" [class.expanded]="isOpen">
+    <div class="battle-header" (click)="toggleSidebar()">
+        ⚔️ Equipe de Batalha
+        <span>{{ isOpen ? '▲' : '▼' }}</span>
+    </div>
+
+    <div class="battle-content">
+        <p class="empty" *ngIf="!equipe || equipe.length === 0">
+            Nenhum Pokémon na equipe.
+        </p>
+
+        <!-- Grid com quadradinhos (aparece só quando fechado) -->
+        <div class="team-grid" *ngIf="!isOpen && equipe && equipe.length > 0">
+            <div *ngFor="let poke of equipe" class="pokemon-square">
+                <img [src]="poke.imagem_url" [alt]="poke.nome" class="pokemon-icon" />
+            </div>
+        </div>
+
+        <!-- Cards com stats de todos (aparece só quando expandido) -->
+        <div *ngIf="isOpen && equipe && equipe.length > 0">
+            <div class="pokemon-info" *ngFor="let poke of equipe">
+                <div class="pokemon-image">
+                    <img [src]="poke.imagem_url" [alt]="poke.nome" />
+                </div>
+                <h3>{{ poke.nome | titlecase }}</h3>
+
+                <div class="stats" *ngIf="poke.status?.length">
+                    <div *ngFor="let s of poke.status" class="stat">
+                        <div class="stat-header">
+                            <span class="stat-label">{{ s.nome | titlecase }}</span>
+                            <span class="stat-value">{{ s.valor }}</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" [style.width.%]="s.valor"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

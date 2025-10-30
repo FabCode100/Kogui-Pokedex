@@ -1,5 +1,5 @@
 <div class="pokemon-list">
-    <app-pokemon-card *ngFor="let p of pokemons" [pokemon]="p" (addFavorito)="addFavorito(p)"
-        (addEquipe)="addEquipe(p)">
+    <app-pokemon-card *ngFor="let pokemon of pokemons; trackBy: trackByCodigo" [pokemon]="pokemon"
+        (clickVerMais)="onVerMais($event)" (clickFavorito)="onAddFavorito($event)" (clickEquipe)="onAddEquipe($event)">
     </app-pokemon-card>
 </div>

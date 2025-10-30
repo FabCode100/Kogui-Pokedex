@@ -11,6 +11,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.core.cache import cache
+import requests 
+
 
 from .models import PokemonUsuario, TipoPokemon
 from .serializers import (
@@ -95,7 +98,7 @@ async def sync_pokemon_to_db(user, detalhe):
 
 
 # ------------------------------------------------------------
-# LISTAR / SINCRONIZAR POKÉMONS
+# LISTAR / SINCRONIZAR POKÉMONS E ROTA DETALHE
 # ------------------------------------------------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -115,23 +118,133 @@ def pokemons_list(request):
     pokemons_detalhados = asyncio.run(main())
     return Response(pokemons_detalhados)
 
+def calcular_geracao(pokemon_id):
+    if pokemon_id <= 151: return 1
+    if pokemon_id <= 251: return 2
+    if pokemon_id <= 386: return 3
+    if pokemon_id <= 493: return 4
+    if pokemon_id <= 649: return 5
+    if pokemon_id <= 721: return 6
+    if pokemon_id <= 809: return 7
+    if pokemon_id <= 905: return 8
+    return 9
+
+def get_evolution_chain(pokemon_id):
+    # 1️⃣ Pega a espécie
+    species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+    species_resp = requests.get(species_url).json()
+
+    # 2️⃣ Pega a URL da chain
+    chain_url = species_resp["evolution_chain"]["url"]
+    chain_resp = requests.get(chain_url).json()
+    chain = []
+
+    def parse_chain(node):
+        nome = node["species"]["name"]
+        # tenta pegar imagem do pokemon
+        poke_data = requests.get(f"https://pokeapi.co/api/v2/pokemon/{nome}/").json()
+        imagem = poke_data["sprites"]["front_default"]
+        chain.append({"nome": nome, "imagem_url": imagem})
+        for evo in node.get("evolves_to", []):
+            parse_chain(evo)
+
+    parse_chain(chain_resp["chain"])
+    return chain
+
+@api_view(['GET'])
+def pokemon_detalhe(request, pokemon_id):
+    """Retorna TODOS os detalhes de um Pokémon usando a PokeAPI"""
+    cache_key = f"pokemon_detalhe_{pokemon_id}"
+    cached = cache.get(cache_key)
+    if cached:
+        return Response(cached)
+
+    async def main():
+        async with aiohttp.ClientSession() as session:
+            # Pega dados principais
+            url_pokemon = f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}/"
+            data_pokemon = await fetch_json(session, url_pokemon)
+            if not data_pokemon:
+                return None
+
+            # Pega dados de espécie para evolução e descrições
+            url_species = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+            data_species = await fetch_json(session, url_species)
+
+            # Evolução
+            evolution_chain = []
+            if data_species and 'evolution_chain' in data_species:
+                evo_url = data_species['evolution_chain']['url']
+                evo_data = await fetch_json(session, evo_url)
+                if evo_data:
+                    def parse_evo(chain):
+                        evol = []
+                        species = chain['species']
+                        evol.append({
+                            "nome": species['name'],
+                            "url": species['url']
+                        })
+                        for e in chain.get('evolves_to', []):
+                            evol.extend(parse_evo(e))
+                        return evol
+                    evolution_chain = parse_evo(evo_data['chain'])
+
+            # Monta o objeto final
+            pokemon_obj = {
+                "codigo": data_pokemon['id'],
+                "nome": data_pokemon['name'],
+                "imagem_url": data_pokemon['sprites']['front_default'],
+                "tipos": [{"descricao": t['type']['name']} for t in data_pokemon.get('types', [])],
+                "status": [{"nome": s['stat']['name'], "valor": s['base_stat']} for s in data_pokemon.get('stats', [])],
+                "habilidades": [{"nome": h['ability']['name']} for h in data_pokemon.get('abilities', [])],
+                "movimentos": [{"nome": m['move']['name']} for m in data_pokemon.get('moves', [])],
+                "sprites": [s for s in data_pokemon['sprites'].values() if isinstance(s, str)],
+                "formasAlternativas": [],  # você pode adicionar depois
+                "evolutionChain": get_evolution_chain(data_pokemon["id"]),
+                "geracao": calcular_geracao(data_pokemon["id"])
+            }
+
+            return pokemon_obj
+
+    result = asyncio.run(main())
+    if result:
+        cache.set(cache_key, result, 60*60*24)
+        return Response(result)
+    return Response({"error": "Pokémon não encontrado"}, status=404)
 
 
+# ------------------------------------------------------------
+# FAVORITOS
+# ------------------------------------------------------------
 # ------------------------------------------------------------
 # FAVORITOS
 # ------------------------------------------------------------
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def favoritos_list(request):
+    user = request.user
+
     if request.method == 'GET':
-        pokemons = PokemonUsuario.objects.filter(usuario=request.user, favorito=True)
+        pokemons = PokemonUsuario.objects.filter(usuario=user, favorito=True)
         serializer = PokemonUsuarioSerializer(pokemons, many=True)
         return Response(serializer.data)
 
-    data = request.data
+    # POST: alterna favorito
+    data = request.data  # <- JSON enviado pelo Angular
+    nome = data.get('nome')
+    if not nome:
+        return Response({'error': 'Campo "nome" obrigatório'}, status=400)
+
     try:
-        pokemon = PokemonUsuario.objects.get(usuario=request.user, nome=data['nome'])
-        pokemon.favorito = not pokemon.favorito
+        pokemon = PokemonUsuario.objects.get(usuario=user, nome=nome)
+
+        # Se vier "favorito" no body, usa o valor; senão alterna
+        favorito_atual = data.get('favorito')
+        if favorito_atual is not None:
+            pokemon.favorito = favorito_atual
+        else:
+            pokemon.favorito = not pokemon.favorito
+
         pokemon.save()
         serializer = PokemonUsuarioSerializer(pokemon)
         return Response(serializer.data)
@@ -142,27 +255,44 @@ def favoritos_list(request):
 # ------------------------------------------------------------
 # GRUPO DE BATALHA
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# GRUPO DE BATALHA
+# ------------------------------------------------------------
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def batalha_list(request):
+    user = request.user
+
     if request.method == 'GET':
-        pokemons = PokemonUsuario.objects.filter(usuario=request.user, grupo_batalha=True)
+        # Retorna os pokémons atualmente no grupo de batalha
+        pokemons = PokemonUsuario.objects.filter(usuario=user, grupo_batalha=True)
         serializer = PokemonUsuarioSerializer(pokemons, many=True)
         return Response(serializer.data)
 
+    # POST → adicionar ou remover do grupo de batalha
     data = request.data
+    nome = data.get('nome')
+    if not nome:
+        return Response({'error': 'Nome do Pokémon não fornecido'}, status=400)
+
     try:
-        pokemon = PokemonUsuario.objects.get(usuario=request.user, nome=data['nome'])
-        if not pokemon.grupo_batalha:
-            if PokemonUsuario.objects.filter(usuario=request.user, grupo_batalha=True).count() >= 6:
-                return Response({'error': 'Máximo de 6 pokémons na equipe'}, status=400)
-        pokemon.grupo_batalha = not pokemon.grupo_batalha
-        pokemon.save()
-        serializer = PokemonUsuarioSerializer(pokemon)
-        return Response(serializer.data)
+        pokemon = PokemonUsuario.objects.get(usuario=user, nome=nome)
     except PokemonUsuario.DoesNotExist:
         return Response({'error': 'Pokémon não encontrado'}, status=404)
 
+    # Lógica do botão híbrido
+    if not pokemon.grupo_batalha:
+        # Adicionando ao grupo → verifica limite de 6
+        if PokemonUsuario.objects.filter(usuario=user, grupo_batalha=True).count() >= 6:
+            return Response({'error': 'Máximo de 6 pokémons na equipe'}, status=400)
+        pokemon.grupo_batalha = True
+    else:
+        # Removendo do grupo
+        pokemon.grupo_batalha = False
+
+    pokemon.save()
+    serializer = PokemonUsuarioSerializer(pokemon)
+    return Response(serializer.data)
 
 # ------------------------------------------------------------
 # AUTENTICAÇÃO / PERFIL

@@ -35,8 +35,9 @@ def calcular_geracao(pokemon_id):
     if pokemon_id <= 905: return 8
     return 9
 
+
 def get_pokemon_detalhes(pokemon_id):
-    cache_key = f"pokemon_{pokemon_id}"
+    cache_key = f"pokemon_{pokemon_id}_detalhe"
     cached = cache.get(cache_key)
     if cached:
         return cached
@@ -47,52 +48,78 @@ def get_pokemon_detalhes(pokemon_id):
         return None
     data = resp.json()
 
+    # Tipos com cor
     tipos = [
-        {"nome": t["type"]["name"], "cor": TIPOS_CORES.get(t["type"]["name"], "#A8A878")}
+        {"descricao": t["type"]["name"], "cor": TIPOS_CORES.get(t["type"]["name"], "#A8A878")}
         for t in data.get("types", [])
     ]
-    stats = [{"label": s["stat"]["name"], "valor": s["base_stat"]} for s in data.get("stats", [])]
 
+    # Status
+    status = [{"nome": s["stat"]["name"], "valor": s["base_stat"]} for s in data.get("stats", [])]
+
+    # Habilidades
+    habilidades = [
+        {"nome": a["ability"]["name"], "descricao": None}
+        for a in data.get("abilities", [])
+    ]
+
+    # Movimentos (só primeiros 10 pra não pesar)
+    movimentos = [
+        {
+            "nome": m["move"]["name"],
+            "tipo": None,
+            "power": None,
+            "pp": None,
+            "categoria": None,
+            "level": None,
+        }
+        for m in data.get("moves", [])[:10]
+    ]
+
+    # Sprites (carrossel)
+    sprites = [
+        s for s in [
+            data["sprites"].get("front_default"),
+            data["sprites"].get("back_default"),
+            data["sprites"].get("front_shiny"),
+            data["sprites"].get("back_shiny"),
+            data["sprites"]["other"].get("official-artwork", {}).get("front_default"),
+        ] if s
+    ]
+
+    # Corrente evolutiva (opcional)
+    species_url = data.get("species", {}).get("url")
+    evolution_chain = []
+    if species_url:
+        species_resp = requests.get(species_url).json()
+        evo_url = species_resp.get("evolution_chain", {}).get("url")
+        if evo_url:
+            evo_resp = requests.get(evo_url).json()
+            chain = evo_resp.get("chain", {})
+            while chain:
+                evo_name = chain["species"]["name"]
+                evo_id = int(chain["species"]["url"].split("/")[-2])
+                evolution_chain.append({
+                    "nome": evo_name,
+                    "imagem_url": f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{evo_id}.png"
+                })
+                chain = chain["evolves_to"][0] if chain["evolves_to"] else None
+
+    # Monta objeto final compatível com frontend
     pokemon = {
-        "numero": data["id"],
+        "codigo": data["id"],
         "nome": data["name"],
-        "imagem": f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{pokemon_id}.png",
+        "imagem_url": f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{pokemon_id}.png",
         "tipos": tipos,
-        "stats": stats,
+        "status": status,
+        "favorito": False,
+        "equipe": False,
         "geracao": calcular_geracao(data["id"]),
+        "habilidades": habilidades,
+        "movimentos": movimentos,
+        "evolutionChain": evolution_chain,
+        "sprites": sprites,
     }
 
-    # Cache por 24h
-    cache.set(cache_key, pokemon, 60*60*24)
+    cache.set(cache_key, pokemon, 60 * 60 * 24)
     return pokemon
-import requests
-
-def get_pokemon_by_id(pokemon_id):
-    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}/"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return None
-    return response.json()
-
-def get_todos_pokemons(limit=151):
-    cache_key = f"pokemons_list_{limit}"
-    cached = cache.get(cache_key)
-    if cached:
-        return cached
-
-    url = f"{POKEAPI_BASE}/pokemon?limit={limit}"
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        return []
-
-    results = resp.json().get("results", [])
-    pokemons = []
-    for p in results:
-        # Extrai ID da URL
-        pokemon_id = int(p["url"].rstrip("/").split("/")[-1])
-        detalhes = get_pokemon_detalhes(pokemon_id)
-        if detalhes:
-            pokemons.append(detalhes)
-
-    cache.set(cache_key, pokemons, 60*60*24)
-    return pokemons

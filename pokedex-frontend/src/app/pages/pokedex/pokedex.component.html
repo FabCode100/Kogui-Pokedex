@@ -1,14 +1,31 @@
 <app-header></app-header>
 
-<app-filter [tipos]="tipos" (filterChange)="filtroTipo = $event; filtrarPokemons()"
-    (generationChange)="filtroGeracao = $event; filtrarPokemons()"
-    (nameChange)="filtroNome = $event; filtrarPokemons()">
-</app-filter>
 
-<p class="loading" *ngIf="loading">Carregando Pokémons...</p>
 
-<app-pokemon-list *ngIf="!loading && pokemonsFiltrados.length > 0" [pokemons]="pokemonsFiltrados"
-    [addFavorito]="addFavorito.bind(this)" [addEquipe]="addEquipe.bind(this)">
-</app-pokemon-list>
+<!-- Wrapper horizontal -->
+<div class="page-wrapper">
+    <!-- 🧩 Sidebar -->
+    <app-battle-sidebar [equipe]="equipe"></app-battle-sidebar>
 
-<p class="loading" *ngIf="!loading && pokemonsFiltrados.length === 0">Nenhum Pokémon encontrado.</p>
+    <!-- Conteúdo principal -->
+    <div class="main-container">
+        <p class="loading" *ngIf="loading">Carregando Pokémons...</p>
+
+        <app-filter [tipos]="tipos" (filterChange)="filtroTipo = $event; filtrarPokemons()"
+            (generationChange)="filtroGeracao = $event; filtrarPokemons()"
+            (nameChange)="filtroNome = $event; filtrarPokemons()">
+        </app-filter>
+        <app-pokemon-list [pokemons]="pokemonsFiltrados" (verMais)="openDetail($event)"
+            (addFavorito)="addFavorito($event)" (addEquipe)="addEquipe($event)">
+        </app-pokemon-list>
+
+
+        <!-- Modal Detalhe -->
+        <app-pokemon-detail [pokemon]="selectedPokemon!" [visible]="showDetail" (close)="closeDetail()">
+        </app-pokemon-detail>
+
+        <p class="loading" *ngIf="!loading && pokemonsFiltrados.length === 0">
+            Nenhum Pokémon encontrado.
+        </p>
+    </div>
+</div>
