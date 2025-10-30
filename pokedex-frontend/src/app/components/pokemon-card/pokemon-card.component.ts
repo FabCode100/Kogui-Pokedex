@@ -44,8 +44,16 @@ export class PokemonCardComponent implements OnInit, OnChanges {
     adicionarFavorito() {
         this.favoritoAtivo = !this.favoritoAtivo;
         this.pokemon.favorito = this.favoritoAtivo;
+
+        console.log('[Card] clicar favorito ->', {
+            nome: this.pokemon.nome,
+            favoritoAtivo: this.favoritoAtivo,
+            pokemonObj: this.pokemon
+        });
+
         this.clickFavorito.emit({ pokemon: this.pokemon, ativo: this.favoritoAtivo });
     }
+
 
     adicionarEquipe() {
         // botão híbrido

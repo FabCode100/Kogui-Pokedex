@@ -10,16 +10,20 @@ import { CommonModule } from '@angular/common';
 })
 export class FilterComponent {
   @Input() tipos: { nome: string; cor: string }[] = [];
+
+  // Emite alterações de filtro
   @Output() filterChange = new EventEmitter<string>();
   @Output() generationChange = new EventEmitter<number>();
   @Output() nameChange = new EventEmitter<string>();
+  @Output() favoriteChange = new EventEmitter<boolean | null>(); // ✅ novo
 
   filtroTipo: string = '';
   filtroGeracao: number | null = null;
   filtroNome: string = '';
+  filtroFavorito: boolean | null = null; // true = só favoritos, false = todos
   showTipos = false;
   showGeracoes = false;
-
+  showFavoritos = false;
 
   selecionarTipo(tipo: string) {
     this.filtroTipo = tipo;
@@ -29,6 +33,12 @@ export class FilterComponent {
   selecionarGeracao(geracao: number) {
     this.filtroGeracao = geracao;
     this.generationChange.emit(this.filtroGeracao);
+  }
+
+  selecionarFavorito(valor: boolean | null) {
+    this.filtroFavorito = valor;
+    console.log('[FilterComponent] Emite filtroFavorito:', valor);
+    this.favoriteChange.emit(valor);
   }
 
   buscarNome(event: any) {

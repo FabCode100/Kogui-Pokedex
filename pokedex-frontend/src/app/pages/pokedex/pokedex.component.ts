@@ -37,6 +37,8 @@ export class PokedexComponent implements OnInit {
   filtroNome = '';
   filtroTipo = 'All';
   filtroGeracao: number | null = null;
+  filtroFavorito: boolean | null = null;
+
 
   tipos = [
     { nome: 'All', cor: '#A8A878' },
@@ -186,50 +188,149 @@ export class PokedexComponent implements OnInit {
   carregarPokemons() {
     this.loading = true;
     const token = localStorage.getItem('access_token');
+    if (!token) return;
 
-    this.http.get<any[]>(`${environment.apiBase}/pokemons/`, {
+    // Se o filtro estiver ativo, busca diretamente no endpoint de favoritos
+    const endpoint = this.filtroFavorito ? 'favoritos' : 'pokemons';
+
+    this.http.get<any[]>(`${environment.apiBase}/${endpoint}/`, {
       headers: { Authorization: `Bearer ${token}` }
     }).subscribe(res => {
-      this.pokemons = res.map(p => ({
-        codigo: Number(p.codigo),
-        nome: p.nome,
-        imagem_url: p.imagem_url,
-        geracao: p.geracao || this.calcularGeracao(Number(p.codigo)),
-        favorito: this.favoritos.includes(p.nome),
-        equipe: this.equipe.some(e => e.nome === p.nome),
-        tipos: p.tipos.map((t: any) => ({
-          descricao: t.descricao,
-          cor: this.getTypeColor(t.descricao)
-        })),
-        // ✅ Guarda os stats completos invisíveis no card
-        status: p.stats
-          ? Object.entries(p.stats).map(([nome, valor]) => ({ nome, valor: valor as number }))
-          : []
-      }));
+      // Se vier do /favoritos, marca todos como favoritos automaticamente
+      if (this.filtroFavorito) {
+        this.favoritos = res.map(p => p.nome);
+      } else {
+        // Se for /pokemons, sincroniza com favoritos do backend
+        this.http.get<any[]>(`${environment.apiBase}/favoritos/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).subscribe(favoritosRes => {
+          this.favoritos = favoritosRes.map(f => f.nome);
+          this.atualizarListaPokemons(res);
+        });
+        return;
+      }
 
-      this.pokemonsFiltrados = [...this.pokemons];
-      this.loading = false;
+      this.atualizarListaPokemons(res);
     });
   }
+
+  atualizarListaPokemons(res: any[]) {
+    this.pokemons = res.map(p => ({
+      codigo: Number(p.codigo),
+      nome: p.nome,
+      imagem_url: p.imagem_url,
+      geracao: p.geracao || this.calcularGeracao(Number(p.codigo)),
+      favorito: this.favoritos.includes(p.nome),
+      equipe: this.equipe.some(e => e.nome === p.nome),
+      tipos: p.tipos.map((t: any) => ({
+        descricao: t.descricao,
+        cor: this.getTypeColor(t.descricao)
+      })),
+      status: p.stats
+        ? Object.entries(p.stats).map(([nome, valor]) => ({ nome, valor: valor as number }))
+        : []
+    }));
+
+    this.pokemonsFiltrados = [...this.pokemons];
+    this.loading = false;
+  }
+
+  aplicarFiltroFavorito() {
+    console.log('[Pokedex] aplicarFiltroFavorito chamado:', this.filtroFavorito);
+
+    if (this.filtroFavorito === true) {
+      // Buscar favoritos do backend
+      this.loading = true;
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      console.log('[Pokedex] GET /favoritos');
+      this.http.get<any[]>(`${environment.apiBase}/favoritos/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).subscribe(res => {
+        console.log('[Pokedex] resposta /favoritos:', res);
+
+        this.pokemonsFiltrados = res.map(p => ({
+          codigo: Number(p.codigo),
+          nome: p.nome,
+          imagem_url: p.imagem_url,
+          geracao: p.geracao || this.calcularGeracao(Number(p.codigo)),
+          favorito: true,
+          equipe: this.equipe.some(e => e.nome === p.nome),
+          tipos: p.tipos?.map((t: any) => ({
+            descricao: t.descricao,
+            cor: this.getTypeColor(t.descricao)
+          })) || [],
+          status: p.stats
+            ? Object.entries(p.stats).map(([nome, valor]) => ({ nome, valor: valor as number }))
+            : []
+        }));
+
+        console.log('[Pokedex] pokemonsFiltrados atualizados com favoritos:', this.pokemonsFiltrados);
+        this.loading = false;
+      });
+
+    } else {
+      // Recarregar todos os pokemons normalmente
+      console.log('[Pokedex] filtroFavorito=false -> recarregarPokemons');
+      this.carregarPokemons();
+    }
+  }
+
 
   addFavorito(event: { pokemon: Pokemon; ativo: boolean }) {
     const { pokemon } = event;
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
-    const body = { nome: pokemon.nome, imagem_url: pokemon.imagem_url, favorito: !pokemon.favorito };
+    const novoFavorito = pokemon.favorito; // valor futuro
+    const body = {
+      nome: pokemon.nome,
+      imagem_url: pokemon.imagem_url,
+      favorito: novoFavorito
+    };
+
+    console.log('[Pokedex] addFavorito chamado ->', pokemon.nome, 'novo favorito:', novoFavorito);
 
     this.http.post(`${environment.apiBase}/favoritos/`, body, {
       headers: { Authorization: `Bearer ${token}` }
-    }).subscribe(() => {
-      pokemon.favorito = !pokemon.favorito;
-      if (pokemon.favorito && !this.favoritos.includes(pokemon.nome)) {
-        this.favoritos.push(pokemon.nome);
-      } else {
-        this.favoritos = this.favoritos.filter(n => n !== pokemon.nome);
+    }).subscribe({
+      next: (res: any) => {
+        console.log('[Pokedex] POST /favoritos/ resposta:', res);
+
+        // Atualiza o estado local
+        pokemon.favorito = novoFavorito;
+
+        // Atualiza o array principal
+        const index = this.pokemons.findIndex(p => p.nome === pokemon.nome);
+        if (index >= 0) {
+          this.pokemons[index].favorito = novoFavorito;
+          console.log(`[Pokedex] this.pokemons[${index}] atualizado com favorito=${novoFavorito}`);
+        }
+
+        // Atualiza lista local de nomes de favoritos
+        if (novoFavorito && !this.favoritos.includes(pokemon.nome)) {
+          this.favoritos.push(pokemon.nome);
+          console.log('[Pokedex] adicionou nome em this.favoritos:', this.favoritos);
+        } else if (!novoFavorito) {
+          this.favoritos = this.favoritos.filter(n => n !== pokemon.nome);
+          console.log('[Pokedex] removeu nome de this.favoritos:', this.favoritos);
+        }
+
+        // Só refiltra se houver um filtro ativo (para não resetar o estado)
+        if (this.filtroNome || this.filtroTipo || this.filtroGeracao || this.filtroFavorito) {
+          console.log('[Pokedex] Reaplicando filtros ativos após alteração de favorito');
+          this.filtrarPokemons();
+        } else {
+          console.log('[Pokedex] Nenhum filtro ativo, não é necessário refiltrar');
+        }
+      },
+      error: (err) => {
+        console.error('[Pokedex] Erro ao atualizar favorito:', err);
       }
     });
   }
+
 
 
   addEquipe(event: { pokemon: Pokemon; ativo: boolean }) {
@@ -271,10 +372,6 @@ export class PokedexComponent implements OnInit {
     });
   }
 
-
-
-
-
   getTypeColor(typeName: string) {
     const tipo = this.tipos.find(t => t.nome.toLowerCase() === typeName.toLowerCase());
     return tipo ? tipo.cor : '#A8A878';
@@ -309,11 +406,38 @@ export class PokedexComponent implements OnInit {
 
 
   filtrarPokemons() {
-    this.pokemonsFiltrados = this.pokemons.filter(p => {
-      const filtrarNome = this.filtroNome ? p.nome.toLowerCase().includes(this.filtroNome.toLowerCase()) : true;
-      const filtrarTipo = this.filtroTipo !== 'All' ? p.tipos.some(t => t.descricao.toLowerCase() === this.filtroTipo.toLowerCase()) : true;
-      const filtrarGeracao = this.filtroGeracao ? p.geracao === this.filtroGeracao : true;
-      return filtrarNome && filtrarTipo && filtrarGeracao;
+    console.log('[Pokedex] filtrarPokemons chamado');
+    console.log('[Pokedex] filtros ativos ->', {
+      nome: this.filtroNome,
+      tipo: this.filtroTipo,
+      geracao: this.filtroGeracao,
+      favorito: this.filtroFavorito
     });
+
+    this.pokemonsFiltrados = this.pokemons.filter(p => {
+      const filtrarNome = this.filtroNome
+        ? p.nome.toLowerCase().includes(this.filtroNome.toLowerCase())
+        : true;
+
+      const filtrarTipo = this.filtroTipo && this.filtroTipo !== 'All'
+        ? p.tipos.some(t => t.descricao.toLowerCase() === this.filtroTipo.toLowerCase())
+        : true;
+
+      const filtrarGeracao = this.filtroGeracao
+        ? p.geracao === this.filtroGeracao
+        : true;
+
+      const filtrarFavorito = this.filtroFavorito
+        ? p.favorito === true
+        : true;
+
+      return filtrarNome && filtrarTipo && filtrarGeracao && filtrarFavorito;
+    });
+
+    console.log('[Pokedex] Resultado do filtro final:', this.pokemonsFiltrados.map(p => p.nome));
   }
+
+
+
+
 }

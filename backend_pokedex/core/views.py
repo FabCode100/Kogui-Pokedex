@@ -219,6 +219,12 @@ def pokemon_detalhe(request, pokemon_id):
 # ------------------------------------------------------------
 # FAVORITOS
 # ------------------------------------------------------------
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import PokemonUsuario
+from .serializers import PokemonUsuarioSerializer
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def favoritos_list(request):
@@ -227,10 +233,13 @@ def favoritos_list(request):
     if request.method == 'GET':
         pokemons = PokemonUsuario.objects.filter(usuario=user, favorito=True)
         serializer = PokemonUsuarioSerializer(pokemons, many=True)
+        print("[DEBUG] GET /favoritos ->", serializer.data)
         return Response(serializer.data)
 
     # POST: alterna favorito
     data = request.data  # <- JSON enviado pelo Angular
+    print("[DEBUG] POST /favoritos data recebida:", data)
+
     nome = data.get('nome')
     if not nome:
         return Response({'error': 'Campo "nome" obrigatório'}, status=400)
@@ -241,15 +250,27 @@ def favoritos_list(request):
         # Se vier "favorito" no body, usa o valor; senão alterna
         favorito_atual = data.get('favorito')
         if favorito_atual is not None:
+            # Converte qualquer valor para boolean
+            if isinstance(favorito_atual, str):
+                favorito_atual = favorito_atual.lower() == 'true'
+            elif isinstance(favorito_atual, int):
+                favorito_atual = bool(favorito_atual)
+
             pokemon.favorito = favorito_atual
+            print(f"[DEBUG] POST /favoritos -> favorito definido pelo body: {favorito_atual}")
         else:
             pokemon.favorito = not pokemon.favorito
+            print(f"[DEBUG] POST /favoritos -> favorito alternado: {pokemon.favorito}")
 
         pokemon.save()
         serializer = PokemonUsuarioSerializer(pokemon)
+        print(f"[DEBUG] POST /favoritos -> Pokémon salvo: {serializer.data}")
         return Response(serializer.data)
+
     except PokemonUsuario.DoesNotExist:
+        print(f"[DEBUG] POST /favoritos -> Pokémon '{nome}' não encontrado para o usuário {user}")
         return Response({'error': 'Pokémon não encontrado'}, status=404)
+
 
 
 # ------------------------------------------------------------

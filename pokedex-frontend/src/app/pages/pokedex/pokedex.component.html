@@ -13,8 +13,11 @@
 
         <app-filter [tipos]="tipos" (filterChange)="filtroTipo = $event; filtrarPokemons()"
             (generationChange)="filtroGeracao = $event; filtrarPokemons()"
-            (nameChange)="filtroNome = $event; filtrarPokemons()">
+            (nameChange)="filtroNome = $event; filtrarPokemons()"
+            (favoriteChange)="filtroFavorito = $event; aplicarFiltroFavorito()">
         </app-filter>
+
+
         <app-pokemon-list [pokemons]="pokemonsFiltrados" (verMais)="openDetail($event)"
             (addFavorito)="addFavorito($event)" (addEquipe)="addEquipe($event)">
         </app-pokemon-list>

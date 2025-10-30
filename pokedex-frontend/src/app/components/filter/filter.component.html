@@ -1,5 +1,6 @@
 <div class="filter-container">
     <div class="dropdown-group">
+
         <!-- Dropdown Tipos -->
         <div class="dropdown">
             <button class="dropdown-btn" (click)="showTipos = !showTipos">
@@ -26,6 +27,23 @@
                 </button>
             </div>
         </div>
+
+        <!-- Dropdown Favoritos -->
+        <div class="dropdown">
+            <button class="dropdown-btn" (click)="showFavoritos = !showFavoritos">
+                {{ filtroFavorito === true ? 'Apenas Favoritos' : 'Filtrar por Favoritos' }}
+                <span class="arrow" [class.open]="showFavoritos">▼</span>
+            </button>
+            <div class="dropdown-menu" *ngIf="showFavoritos">
+                <button (click)="selecionarFavorito(true); showFavoritos = false">
+                    Apenas Favoritos
+                </button>
+                <button (click)="selecionarFavorito(null); showFavoritos = false">
+                    Todos
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <!-- Barra de busca -->
