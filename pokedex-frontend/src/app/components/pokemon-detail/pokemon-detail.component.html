@@ -1,10 +1,16 @@
 <!-- Overlay -->
 <div class="overlay" *ngIf="visible" (click)="onClose()"></div>
+<!-- Overlay de loading -->
 
 <!-- Modal principal -->
 <div class="modal" *ngIf="visible && pokemon">
     <!-- Cabeçalho -->
-    <div class="modal-header" [style.background]="pokemon.tipos[0]?.cor || '#ff3b3b'">
+    <div *ngIf="loadingModal" class="loading-overlay">
+        <mat-spinner></mat-spinner> <!-- se usar Angular Material -->
+        <!-- ou só um texto "Carregando..." se não tiver Material -->
+        <!-- <span>Carregando...</span> -->
+    </div>
+    <div class="modal-header" [style.background]="getHeaderColor()">
         <div class="header-left">
             <h2>{{ pokemon.nome | titlecase }}</h2>
             <span class="code">#{{ pokemon.codigo }}</span>

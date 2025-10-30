@@ -40,7 +40,6 @@ async def fetch_json(session, url):
 
 
 async def fetch_pokemons_data(limit=30):
-    """Busca lista e detalhes dos pokémons da PokeAPI"""
     async with aiohttp.ClientSession() as session:
         main_url = f"https://pokeapi.co/api/v2/pokemon?limit={limit}"
         main_data = await fetch_json(session, main_url)
@@ -58,10 +57,7 @@ async def fetch_pokemons_data(limit=30):
 async def sync_pokemon_to_db(user, detalhe):
     nome = detalhe['name']
     codigo = detalhe['id']
-    imagem_url = (
-        detalhe['sprites']['front_default']
-        or f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{codigo}.png"
-    )
+    imagem_url = detalhe['sprites']['front_default'] or f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{codigo}.png"
     tipos_lista = [t['type']['name'] for t in detalhe['types']]
     stats_lista = {s['stat']['name']: s['base_stat'] for s in detalhe['stats']}
 
@@ -73,11 +69,11 @@ async def sync_pokemon_to_db(user, detalhe):
             'imagem_url': imagem_url,
             'favorito': False,
             'grupo_batalha': False,
-            'stats_cache': stats_lista  # salva aqui
+            'stats_cache': stats_lista
         }
     )
 
-    # Atualiza tipos e stats caso já exista
+    # Atualiza tipos caso já exista
     for tipo in tipos_lista:
         tipo_obj, _ = await sync_to_async(TipoPokemon.objects.get_or_create)(descricao=tipo)
         await sync_to_async(pokemon_obj.tipos.add)(tipo_obj)
@@ -98,7 +94,50 @@ async def sync_pokemon_to_db(user, detalhe):
 
 
 # ------------------------------------------------------------
-# LISTAR / SINCRONIZAR POKÉMONS E ROTA DETALHE
+# CALCULA GERAÇÃO
+# ------------------------------------------------------------
+def calcular_geracao(pokemon_id):
+    if pokemon_id <= 151: return 1
+    if pokemon_id <= 251: return 2
+    if pokemon_id <= 386: return 3
+    if pokemon_id <= 493: return 4
+    if pokemon_id <= 649: return 5
+    if pokemon_id <= 721: return 6
+    if pokemon_id <= 809: return 7
+    if pokemon_id <= 905: return 8
+    return 9
+
+
+# ------------------------------------------------------------
+# FETCH EVOLUTION CHAIN (async)
+# ------------------------------------------------------------
+async def get_evolution_chain(session, pokemon_id):
+    species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
+    species_data = await fetch_json(session, species_url)
+    if not species_data or 'evolution_chain' not in species_data:
+        return []
+
+    evo_url = species_data['evolution_chain']['url']
+    evo_data = await fetch_json(session, evo_url)
+    if not evo_data:
+        return []
+
+    chain = []
+
+    async def parse_chain(node):
+        nome = node['species']['name']
+        poke_data = await fetch_json(session, f"https://pokeapi.co/api/v2/pokemon/{nome}/")
+        imagem = poke_data['sprites']['front_default'] if poke_data else None
+        chain.append({"nome": nome, "imagem_url": imagem})
+        for evo in node.get("evolves_to", []):
+            await parse_chain(evo)
+
+    await parse_chain(evo_data['chain'])
+    return chain
+
+
+# ------------------------------------------------------------
+# LISTAR / SINCRONIZAR POKÉMONS
 # ------------------------------------------------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -118,79 +157,40 @@ def pokemons_list(request):
     pokemons_detalhados = asyncio.run(main())
     return Response(pokemons_detalhados)
 
-def calcular_geracao(pokemon_id):
-    if pokemon_id <= 151: return 1
-    if pokemon_id <= 251: return 2
-    if pokemon_id <= 386: return 3
-    if pokemon_id <= 493: return 4
-    if pokemon_id <= 649: return 5
-    if pokemon_id <= 721: return 6
-    if pokemon_id <= 809: return 7
-    if pokemon_id <= 905: return 8
-    return 9
 
-def get_evolution_chain(pokemon_id):
-    # 1️⃣ Pega a espécie
-    species_url = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
-    species_resp = requests.get(species_url).json()
-
-    # 2️⃣ Pega a URL da chain
-    chain_url = species_resp["evolution_chain"]["url"]
-    chain_resp = requests.get(chain_url).json()
-    chain = []
-
-    def parse_chain(node):
-        nome = node["species"]["name"]
-        # tenta pegar imagem do pokemon
-        poke_data = requests.get(f"https://pokeapi.co/api/v2/pokemon/{nome}/").json()
-        imagem = poke_data["sprites"]["front_default"]
-        chain.append({"nome": nome, "imagem_url": imagem})
-        for evo in node.get("evolves_to", []):
-            parse_chain(evo)
-
-    parse_chain(chain_resp["chain"])
-    return chain
-
+# ------------------------------------------------------------
+# DETALHE DO POKÉMON (busca + salva)
+# ------------------------------------------------------------
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def pokemon_detalhe(request, pokemon_id):
-    """Retorna TODOS os detalhes de um Pokémon usando a PokeAPI"""
-    cache_key = f"pokemon_detalhe_{pokemon_id}"
-    cached = cache.get(cache_key)
-    if cached:
-        return Response(cached)
+    from .models import PokemonDetalhe
+    # 1️⃣ Checa se já existe no banco
+    detalhe_existente = PokemonDetalhe.objects.filter(codigo=pokemon_id).first()
+    if detalhe_existente:
+        return Response({
+            "codigo": detalhe_existente.codigo,
+            "nome": detalhe_existente.nome,
+            "imagem_url": detalhe_existente.imagem_url,
+            "tipos": detalhe_existente.tipos,
+            "status": detalhe_existente.status,
+            "habilidades": detalhe_existente.habilidades,
+            "movimentos": detalhe_existente.movimentos,
+            "sprites": detalhe_existente.sprites,
+            "evolutionChain": detalhe_existente.evolution_chain,
+            "geracao": detalhe_existente.geracao
+        })
 
+    # 2️⃣ Se não existe, busca da PokeAPI e salva
     async def main():
         async with aiohttp.ClientSession() as session:
-            # Pega dados principais
-            url_pokemon = f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}/"
-            data_pokemon = await fetch_json(session, url_pokemon)
+            data_pokemon = await fetch_json(session, f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}/")
             if not data_pokemon:
                 return None
 
-            # Pega dados de espécie para evolução e descrições
-            url_species = f"https://pokeapi.co/api/v2/pokemon-species/{pokemon_id}/"
-            data_species = await fetch_json(session, url_species)
+            evolution_chain = await get_evolution_chain(session, pokemon_id)
 
-            # Evolução
-            evolution_chain = []
-            if data_species and 'evolution_chain' in data_species:
-                evo_url = data_species['evolution_chain']['url']
-                evo_data = await fetch_json(session, evo_url)
-                if evo_data:
-                    def parse_evo(chain):
-                        evol = []
-                        species = chain['species']
-                        evol.append({
-                            "nome": species['name'],
-                            "url": species['url']
-                        })
-                        for e in chain.get('evolves_to', []):
-                            evol.extend(parse_evo(e))
-                        return evol
-                    evolution_chain = parse_evo(evo_data['chain'])
-
-            # Monta o objeto final
-            pokemon_obj = {
+            return {
                 "codigo": data_pokemon['id'],
                 "nome": data_pokemon['name'],
                 "imagem_url": data_pokemon['sprites']['front_default'],
@@ -199,23 +199,30 @@ def pokemon_detalhe(request, pokemon_id):
                 "habilidades": [{"nome": h['ability']['name']} for h in data_pokemon.get('abilities', [])],
                 "movimentos": [{"nome": m['move']['name']} for m in data_pokemon.get('moves', [])],
                 "sprites": [s for s in data_pokemon['sprites'].values() if isinstance(s, str)],
-                "formasAlternativas": [],  # você pode adicionar depois
-                "evolutionChain": get_evolution_chain(data_pokemon["id"]),
+                "evolutionChain": evolution_chain,
                 "geracao": calcular_geracao(data_pokemon["id"])
             }
 
-            return pokemon_obj
-
     result = asyncio.run(main())
+
     if result:
-        cache.set(cache_key, result, 60*60*24)
+        # salva no banco
+        PokemonDetalhe.objects.create(
+            codigo=result["codigo"],
+            nome=result["nome"],
+            imagem_url=result["imagem_url"],
+            tipos=result["tipos"],
+            status=result["status"],
+            habilidades=result["habilidades"],
+            movimentos=result["movimentos"],
+            sprites=result["sprites"],
+            evolution_chain=result["evolutionChain"],
+            geracao=result["geracao"]
+        )
         return Response(result)
+
     return Response({"error": "Pokémon não encontrado"}, status=404)
 
-
-# ------------------------------------------------------------
-# FAVORITOS
-# ------------------------------------------------------------
 # ------------------------------------------------------------
 # FAVORITOS
 # ------------------------------------------------------------
@@ -271,11 +278,6 @@ def favoritos_list(request):
         print(f"[DEBUG] POST /favoritos -> Pokémon '{nome}' não encontrado para o usuário {user}")
         return Response({'error': 'Pokémon não encontrado'}, status=404)
 
-
-
-# ------------------------------------------------------------
-# GRUPO DE BATALHA
-# ------------------------------------------------------------
 # ------------------------------------------------------------
 # GRUPO DE BATALHA
 # ------------------------------------------------------------

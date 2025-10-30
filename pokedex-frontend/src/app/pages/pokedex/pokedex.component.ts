@@ -174,17 +174,28 @@ export class PokedexComponent implements OnInit {
 
 
 
+  loadingModal: boolean = false; // controla o loading
+  pokemonDetalhe: PokemonDetalhe | null = null;
+
   carregarDetalhePokemon(codigo: number) {
     const token = localStorage.getItem('access_token');
+    this.loadingModal = true; // começa o loading
+
     this.http.get<PokemonDetalhe>(`${environment.apiBase}/pokemon/${codigo}/`, {
       headers: { Authorization: `Bearer ${token}` }
     }).subscribe(
       res => {
-        this.openDetail(res); // abre o modal ou painel de detalhe
+        this.pokemonDetalhe = res;
+        this.openDetail(res); // abre o modal ou painel
+        this.loadingModal = false; // termina o loading
       },
-      err => console.error('Erro ao carregar detalhe do Pokémon:', err)
+      err => {
+        console.error('Erro ao carregar detalhe do Pokémon:', err);
+        this.loadingModal = false; // termina o loading mesmo se houver erro
+      }
     );
   }
+
   carregarPokemons() {
     this.loading = true;
     const token = localStorage.getItem('access_token');

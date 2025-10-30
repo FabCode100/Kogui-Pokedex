@@ -74,3 +74,19 @@ class PokemonUsuario(models.Model):
 
     def __str__(self):
         return self.nome
+    
+class PokemonDetalhe(models.Model):
+    codigo = models.IntegerField(unique=True)
+    nome = models.CharField(max_length=100)
+    imagem_url = models.URLField()
+    tipos = models.JSONField(default=list)
+    status = models.JSONField(default=list)
+    habilidades = models.JSONField(default=list)
+    movimentos = models.JSONField(default=list)
+    sprites = models.JSONField(default=list)
+    evolution_chain = models.JSONField(default=list)
+    geracao = models.IntegerField()
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.nome
