@@ -350,6 +350,12 @@ export class PokedexComponent implements OnInit {
 
     const { pokemon, ativo } = event;
 
+    // Se está tentando adicionar e já tem 6 pokémons, bloqueia
+    if (ativo && this.equipe.length >= 6) {
+      alert('Máximo de 6 pokémons na equipe!');
+      return;
+    }
+
     // Converte stats para objeto para enviar ao backend
     const statsObject = Array.isArray(pokemon.status)
       ? Object.fromEntries(pokemon.status.map(s => [s.nome, s.valor]))
@@ -382,6 +388,7 @@ export class PokedexComponent implements OnInit {
       error: err => console.error('❌ Erro ao atualizar equipe:', err)
     });
   }
+
 
   getTypeColor(typeName: string) {
     const tipo = this.tipos.find(t => t.nome.toLowerCase() === typeName.toLowerCase());

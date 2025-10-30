@@ -56,16 +56,26 @@ export class PokemonCardComponent implements OnInit, OnChanges {
 
 
     adicionarEquipe() {
-        // botão híbrido
-        this.equipeAtiva = !this.equipeAtiva;
-        this.pokemon.equipe = this.equipeAtiva;
+        if (!this.equipeAtiva && this.clickEquipe) {
+            // Podemos adicionar lógica de contagem antes de emitir
+            // Emitimos um evento pedindo a contagem no pai
+            this.clickEquipe.emit({
+                pokemon: { ...this.pokemon },
+                ativo: true,
+                checkTeamLimit: true // flag para pai decidir se pode adicionar
+            });
+        } else {
+            // Remover da equipe não precisa de verificação
+            this.equipeAtiva = false;
+            this.pokemon.equipe = false;
 
-        // emite o evento para o componente pai tratar a lógica
-        this.clickEquipe.emit({
-            pokemon: { ...this.pokemon }, // envia uma cópia para evitar referência duplicada
-            ativo: this.equipeAtiva
-        });
+            this.clickEquipe.emit({
+                pokemon: { ...this.pokemon },
+                ativo: false
+            });
+        }
     }
+
 
     getNomeGeracao(geracao: number | null): string {
         switch (geracao) {
