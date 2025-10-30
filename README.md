@@ -4,19 +4,6 @@
 > Permite visualizar, filtrar e organizar Pokémons, marcar favoritos, montar equipes de batalha e gerenciar seu perfil de usuário.  
 > Tudo isso com **autenticação JWT**, **reset de senha por e-mail** e **UI dinâmica com modal e efeitos de loading.**
 
-## 🧱 Stack Tecnológica
-
-![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![SCSS](https://img.shields.io/badge/SCSS-CC6699?style=for-the-badge&logo=sass&logoColor=white)
-![Angular Material](https://img.shields.io/badge/Angular%20Material-20232A?style=for-the-badge&logo=angular&logoColor=61DAFB)
-![Django](https://img.shields.io/badge/Django-5.0-092E20?style=for-the-badge&logo=django&logoColor=white)
-![Django REST](https://img.shields.io/badge/Django%20REST-API-ff1709?style=for-the-badge&logo=django&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
-![PokeAPI](https://img.shields.io/badge/PokeAPI-FFCB05?style=for-the-badge&logo=pokemon&logoColor=black)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-
 ---
 
 ## 🧭 Índice
@@ -83,14 +70,16 @@ Frontend e backend se comunicam por API REST, e toda a aplicação pode ser exec
 
 ## 🧱 Stack Tecnológica
 
-| Camada | Tecnologias |
-|--------|--------------|
-| **Frontend** | Angular 18, TypeScript, SCSS, Angular Material |
-| **Backend** | Django 5, Django REST Framework |
-| **Banco de Dados** | SQLite |
-| **Autenticação** | JWT (SimpleJWT) |
-| **Integração Externa** | PokeAPI |
-| **Containerização** | Docker, Docker Compose |
+![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![SCSS](https://img.shields.io/badge/SCSS-CC6699?style=for-the-badge&logo=sass&logoColor=white)
+![Angular Material](https://img.shields.io/badge/Angular%20Material-20232A?style=for-the-badge&logo=angular&logoColor=61DAFB)
+![Django](https://img.shields.io/badge/Django-5.0-092E20?style=for-the-badge&logo=django&logoColor=white)
+![Django REST](https://img.shields.io/badge/Django%20REST-API-ff1709?style=for-the-badge&logo=django&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![PokeAPI](https://img.shields.io/badge/PokeAPI-FFCB05?style=for-the-badge&logo=pokemon&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 ---
 
