@@ -260,7 +260,7 @@ Ideal para usuários autenticados e novos visitantes explorarem o sistema.
 💬 “Busco unir tecnologia, design e experiência para criar soluções que realmente encantem.”
 
 📫 **Contato:**
-[LinkedIn](https://linkedin.com/in/fabricio-bastos-cardoso) • [GitHub](https://github.com/)
+[LinkedIn](https://linkedin.com/in/fabricio-bastos-cardoso) • [GitHub](https://github.com/FabCode100)
 
 ---
 
